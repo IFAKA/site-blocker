@@ -46,6 +46,8 @@
         "*://twitter.com/*",
         "*://www.twitter.com/*",
         "*://*.pinterest.com/*",
+        "*://*.facebook.com/*",
+        "*://facebook.com/*",
         "*://*.pornhub.com/*",
         "*://*.xvideos.com/*",
         "*://*.xhamster.com/*",
@@ -56,7 +58,11 @@
         "*://rule34.xxx/*",
         "*://*.nhentai.net/*",
         "*://*.hanime.tv/*",
-        "*://*.f95zone.to/*"
+        "*://*.f95zone.to/*",
+        "*://boards.4chan.org/*",
+        "*://4chan.org/*",
+        "*://*.tiktok.com/*",
+        "*://tiktok.com/*"
       ],
       "js": ["content-blocker.js"],
       "run_at": "document_start"

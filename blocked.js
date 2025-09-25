@@ -3,12 +3,22 @@
   const from = params.get('from');
   const context = document.getElementById('context');
   if (context) {
-    if (from) {
+    // All sites now use content script approach like x.com
+    // Use 'from' parameter first, fall back to document.referrer
+    let referrerUrl = from || document.referrer;
+    
+    if (referrerUrl && referrerUrl.trim()) {
       try {
-        const u = new URL(from);
+        const u = new URL(referrerUrl);
         context.textContent = `You came from: ${u.hostname}${u.pathname}`;
-      } catch {
-        context.textContent = 'You came from a blocked page.';
+      } catch (e) {
+        // If URL parsing fails, try to extract domain from the string
+        const domainMatch = referrerUrl.match(/(?:https?:\/\/)?(?:www\.)?([^\/\s]+)/);
+        if (domainMatch) {
+          context.textContent = `You came from: ${domainMatch[1]}`;
+        } else {
+          context.textContent = 'You came from a blocked page.';
+        }
       }
     } else {
       context.textContent = 'You came from a blocked page.';

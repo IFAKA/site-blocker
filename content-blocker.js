@@ -38,12 +38,23 @@
 		return !!(m && allowedBoards.includes(m[1]));
 	}
 
+	function isFacebookAllowed(u) {
+		if (!/(^|\.)facebook\.com$/.test(u.hostname)) return false;
+		return (
+			u.pathname.startsWith('/marketplace') ||
+			u.pathname.startsWith('/posts/') ||
+			u.pathname.startsWith('/post/')
+		);
+	}
+
 	function isAllowed(u) {
 		const host = u.hostname;
 		if ((/^([a-z0-9-]+\.)?pinterest\.com$/).test(host)) return false;
 		if (host === 'x.com' || host === 'www.x.com') return false;
 		if ((/^([a-z0-9-]+\.)?twitter\.com$/).test(host)) return false;
 		if (host === 'boards.4chan.org' || host === '4chan.org') return false;
+		if ((/^([a-z0-9-]+\.)?facebook\.com$/).test(host)) return false;
+		if ((/^([a-z0-9-]+\.)?tiktok\.com$/).test(host)) return false;
 		if ((/^([a-z0-9-]+\.)?pornhub\.com$/).test(host)) return false;
 		if ((/^([a-z0-9-]+\.)?xvideos\.com$/).test(host)) return false;
 		if ((/^([a-z0-9-]+\.)?xhamster\.com$/).test(host)) return false;
@@ -71,10 +82,14 @@
 	function enforce() {
 		try {
 			const u = new URL(window.location.href);
+			console.log('Content script checking:', u.hostname, 'isAllowed:', isAllowed(u));
 			if (!isAllowed(u)) {
+				console.log('Redirecting to blocked page with from:', window.location.href);
 				goBlocked(true);
 			}
-		} catch {}
+		} catch (e) {
+			console.log('Content script error:', e);
+		}
 	}
 
 	enforce();
