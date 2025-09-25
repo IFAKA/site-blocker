@@ -333,21 +333,16 @@
           <h3>1‑minute reading</h3>
           <button class="btn ghost" id="readClose">Close</button>
         </div>
-        <div class="controls" style="margin:10px 0 6px 0;">
-          <button class="btn" id="readStart">Start</button>
-          <button class="btn secondary" id="readPause">Pause</button>
-          <button class="btn ghost" id="readSkip">Skip chunk</button>
-          <label class="muted" for="wpm" style="margin-left:6px;">WPM</label>
-          <input id="wpm" type="number" min="60" max="1200" step="10" value="250" />
-          <div class="muted" id="readInfo"></div>
-        </div>
-        <div class="countdown-container" style="margin: 8px 0; text-align: center;">
-          <div class="countdown-timer" id="readCountdown" style="display: none; font-size: 1.2rem; font-weight: 600; color: #6366f1;">
-            <span id="countdownTime">60s</span>
+        <div class="controls" style="margin:10px 0 6px 0; display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <button class="btn" id="readStart">Start</button>
+            <label class="muted" for="wpm">WPM</label>
+            <input id="wpm" type="number" min="60" max="1200" step="10" value="250" />
+            <div class="muted" id="readInfo"></div>
           </div>
+          <div class="muted" id="readStatus">Loading bundled text…</div>
         </div>
         <div class="reader"><div class="word" id="readWord">—</div></div>
-        <div class="muted" id="readStatus">Loading bundled text…</div>
       </div>
     </div>
     <!-- Doodle modal -->
@@ -370,6 +365,6 @@
         </div>
       </div>
     </div>
-    <script src="blocked.js"></script>
+    <script type="module" src="blocked.js"></script>
   </body>
 </html>
