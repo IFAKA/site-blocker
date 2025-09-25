@@ -47,7 +47,7 @@
         }
       }
       textarea {
-        width: 100%;
+        width: 94%;
         min-height: 100px;
         resize: vertical;
         background: #0b1220;
@@ -103,17 +103,13 @@
         opacity: 0.8;
         font-size: 0.9rem;
       }
-      .cadence {
-        margin-top: 8px;
-        font-weight: 600;
-      }
       .journal {
         margin-top: 16px;
         padding: 12px;
         border: 1px solid #243242;
         border-radius: 10px;
         background: #0b1220;
-        max-height: 220px;
+        max-height: 320px;
         overflow: auto;
       }
       .journal h3 {
@@ -124,18 +120,48 @@
         padding: 6px 8px;
         border-bottom: 1px solid #1f2937;
       }
+      .entry.selected {
+        background: #1f2937;
+        outline: 2px solid #6366f1;
+        border-radius: 6px;
+      }
+      .entry.copied {
+        background: #065f46;
+        outline: 2px solid #10b981;
+        border-radius: 6px;
+        transition: background 0.3s ease;
+      }
+      .entry.added {
+        background: #1f2937;
+        outline: 2px solid #6366f1;
+        border-radius: 6px;
+        animation: fadeOutline 1s ease forwards;
+      }
+      @keyframes fadeOutline {
+        0% { outline-color: #6366f1; }
+        100% { outline-color: transparent; }
+      }
       .entry small {
         opacity: 0.7;
       }
-      .prayer {
-        margin-top: 10px;
-        display: flex;
+      .overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(2, 6, 23, 0.7);
+        display: none;
         align-items: center;
-        gap: 8px;
+        justify-content: center;
+        z-index: 9999;
       }
-      .prayer .time {
+      .overlay.show { display: flex; }
+      .overlay .message {
+        background: #0b1220;
+        border: 1px solid #334155;
+        color: #e5e7eb;
+        padding: 16px 22px;
+        border-radius: 12px;
         font-weight: 700;
-        letter-spacing: 1px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
       }
     </style>
   </head>
@@ -145,51 +171,60 @@
         <h1>Blocked</h1>
         <div class="sub">This site is blocked by Simple Site Blocker.</div>
 
-        <div class="row">
-          <div>
-            <div class="pill" id="context"></div>
-            <h3>What were you looking for?</h3>
-            <textarea
-              id="intent"
-              placeholder="Write the task, need, or feeling you were chasing..."
-            ></textarea>
-            <div style="display: flex; gap: 8px; margin-top: 8px">
-              <button class="btn" id="saveIntent">Commit to a next step</button>
-              <button class="btn secondary" id="clearIntent">Clear</button>
+        <div style="display: grid; gap: 12px;">
+          <div class="row" style="margin: 0; gap: 12px;">
+            <div>
+              <div class="pill" id="context"></div>
+              <h3>What were you looking for?</h3>
+              <textarea
+                id="intent"
+                placeholder="Write the task, need, or feeling you were chasing..."
+              ></textarea>
+              <div style="display: flex; gap: 8px; margin-top: 8px">
+                <button class="btn" id="saveIntent">Save to Journal</button>
+                <button class="btn secondary" id="clearIntent">Clear</button>
+              </div>
+              <div
+                class="muted"
+                id="intentSaved"
+                style="display: none; margin-top: 6px"
+              >
+                Saved locally (see Journal on the right).
+              </div>
             </div>
-            <div
-              class="muted"
-              id="intentSaved"
-              style="display: none; margin-top: 6px"
-            >
-              Saved locally (see Journal on the right).
-            </div>
-
-            <div class="exercise" id="exerciseBox">
-              <h3 id="exTitle">Exercise set</h3>
-              <div class="muted" id="exSubtitle"></div>
-              <div class="note" id="exNotes" style="margin-top: 6px"></div>
-              <div class="muted" id="exProgress" style="margin-top: 6px"></div>
-              <div class="cadence" id="exCadence"></div>
-              <div style="display: flex; gap: 8px; margin-top: 10px">
-                <button class="btn" id="exStart">
-                  Start set
-                </button>
-                <button class="btn ghost" id="exSkip">Skip once</button>
-                <button class="btn secondary" id="exReset">Reset cycle</button>
+            <div>
+              <h3>Journal</h3>
+              <div class="journal" id="journalBox">
+                <div id="journalEntries" class="muted">No entries yet.</div>
               </div>
             </div>
           </div>
-          <div>
-            <h3>Prayer</h3>
-            <button class="btn secondary" id="prayBtn">1‑min prayer</button>
-            <div class="journal" id="journalBox">
-              <h3>Journal</h3>
-              <div id="journalEntries" class="muted">No entries yet.</div>
+          <div class="row" style="margin-top: 12px; gap: 12px;">
+            <div>
+              <div class="exercise" id="exerciseBox">
+                <h3 id="exTitle">Exercise set</h3>
+                <div class="muted" id="exSubtitle"></div>
+                <div class="note" id="exNotes" style="margin-top: 6px"></div>
+                <div class="muted" id="exProgress" style="margin-top: 6px"></div>
+                <div style="display: flex; gap: 8px; margin-top: 10px">
+                  <button class="btn" id="exStart">
+                    Start set
+                  </button>
+                  <button class="btn ghost" id="exSkip">Skip once</button>
+                  <button class="btn secondary" id="exReset">Reset cycle</button>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h3>Prayer</h3>
+              <button class="btn secondary" id="prayBtn">1‑min prayer</button>
             </div>
           </div>
         </div>
       </div>
+    </div>
+    <div id="overlay" class="overlay" aria-hidden="true">
+      <div class="message" id="overlayMsg">Copied to clipboard</div>
     </div>
     <script src="blocked.js"></script>
   </body>

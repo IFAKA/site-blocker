@@ -31,9 +31,23 @@
         entries.unshift({ text, at: new Date().toISOString(), from });
         localStorage.setItem(keyJournal, JSON.stringify(entries.slice(0,200)));
         renderJournal();
+        // highlight the newly added entry
+        try {
+          const box = document.getElementById('journalEntries');
+          const first = box && box.querySelector && box.querySelector('.entry');
+          if (first) {
+            first.classList.add('added');
+            setTimeout(()=> first.classList.remove('added'), 1000);
+          }
+        } catch {}
       }
       const savedEl = document.getElementById('intentSaved');
-      if (savedEl) savedEl.style.display = 'block';
+      if (savedEl) savedEl.style.display = 'none';
+      // clear and blur textarea
+      $intent.value = '';
+      // ensure nothing persists on reload
+      localStorage.removeItem(keyIntent);
+      $intent.blur();
     };
     if (clearBtn) clearBtn.onclick = () => {
       $intent.value = '';
@@ -49,9 +63,10 @@
     const entries = JSON.parse(localStorage.getItem(keyJournal) || '[]');
     if (!entries.length) { box.textContent = 'No entries yet.'; return; }
     box.innerHTML = '';
-    entries.forEach(e => {
+    entries.forEach((e, idx) => {
       const div = document.createElement('div');
       div.className = 'entry';
+      div.setAttribute('data-index', String(idx));
       const when = new Date(e.at).toLocaleString();
       const fromTxt = e.from ? (()=>{ try{ const u=new URL(e.from); return ` • from ${u.hostname}`; } catch { return ''; } })() : '';
       div.innerHTML = `<small>${when}${fromTxt}</small><br>${(e.text||'').replace(/</g,'&lt;')}`;
@@ -74,14 +89,23 @@
     } catch {}
   }
 
-  // Reusable hover-cancel controller for buttons
   function createHoverCancelController(button, defaultLabel){
-    let hover=false, running=false, currentLabel=defaultLabel;
+    let hover=false, running=false, currentLabel=defaultLabel, lockedWidthPx='';
     function setLabel(text){ currentLabel = text; if (hover && running) { button.textContent = 'Cancel'; } else { button.textContent = text; } }
     function start(){ running=true; setLabel(currentLabel); button.classList.remove('cancel'); }
-    function stop(){ running=false; hover=false; currentLabel=defaultLabel; button.classList.remove('cancel'); button.textContent = defaultLabel; }
-    button.addEventListener('mouseenter', ()=>{ if(running){ hover=true; button.classList.add('cancel'); button.textContent='Cancel'; } });
-    button.addEventListener('mouseleave', ()=>{ if(running){ hover=false; button.classList.remove('cancel'); button.textContent=currentLabel; } });
+    function stop(){ running=false; hover=false; currentLabel=defaultLabel; button.classList.remove('cancel'); button.style.width=''; button.textContent = defaultLabel; }
+    button.addEventListener('mouseenter', ()=>{ if(running){
+      hover=true;
+      const currentW = Math.ceil(button.getBoundingClientRect().width);
+      button.textContent = 'Cancel';
+      const cancelW = Math.ceil(button.getBoundingClientRect().width);
+      const w = Math.max(currentW, cancelW);
+      lockedWidthPx = w ? `${w}px` : '';
+      if (lockedWidthPx) button.style.width = lockedWidthPx;
+      button.classList.add('cancel');
+      button.textContent='Cancel';
+    } });
+    button.addEventListener('mouseleave', ()=>{ if(running){ hover=false; button.classList.remove('cancel'); button.textContent=currentLabel; } button.style.width=''; lockedWidthPx=''; });
     return { setLabel, start, stop, isRunning:()=>running, setRunning:(v)=>{running=v;}, isHover:()=>hover };
   }
 
@@ -112,35 +136,32 @@
     const sEl = document.getElementById('exSubtitle'); if (sEl) sEl.textContent = `Set ${item.setIdx + 1} of ${ex.sets.length} — ${item.reps} reps`;
     const nEl = document.getElementById('exNotes'); if (nEl) nEl.textContent = ex.notes + ' Tempo 4s/rep, 75s rest between sets, 2m between exercises.';
     const pEl = document.getElementById('exProgress'); if (pEl) pEl.textContent = `Progress: ${i + 1} / ${flat.length}. After finishing all sets, the cycle restarts.`;
-    const cEl = document.getElementById('exCadence'); if (cEl) cEl.textContent = '';
   }
   window.renderExercise = renderExercise; renderExercise();
 
-  // Exercise cadence using reusable controller
   (function(){
     const startBtn = document.getElementById('exStart');
     const skipBtn = document.getElementById('exSkip');
     const resetBtn = document.getElementById('exReset');
-    const exCadence = document.getElementById('exCadence');
     if (!startBtn) return;
 
     const controller = createHoverCancelController(startBtn, startBtn.textContent || 'Start set');
     let timer=null, sec=0;
 
-    function cancel(){ if(timer){ clearInterval(timer); timer=null; } controller.stop(); if (exCadence) exCadence.textContent=''; }
+    function cancel(){ if(timer){ clearInterval(timer); timer=null; } controller.stop(); }
     function getReps(){ const sub=(document.getElementById('exSubtitle')||{}).textContent||''; const m=sub.match(/—\s(\d+)\sreps/); return m?parseInt(m[1],10):10; }
 
     function run(){ if (controller.isRunning()) return; controller.setRunning(true); controller.start();
-      const reps=getReps(); let state='prep', prep=5, rep=0; sec=0; if(exCadence) exCadence.textContent=`Get ready… ${prep}s`; controller.setLabel('Get ready… 5s'); beep(660,150);
+      const reps=getReps(); let state='prep', prep=5, rep=0; sec=0; controller.setLabel('Get ready… 5s'); beep(660,150);
       timer=setInterval(()=>{
         if(state==='prep'){
           prep-=1; controller.setLabel(`Get ready… ${Math.max(prep,0)}s`);
-          if(prep>0){ if(exCadence) exCadence.textContent=`Get ready… ${prep}s`; beep(660,80);} else { state='work'; rep=1; if(exCadence) exCadence.textContent=`Rep ${rep}/${reps} — go`; controller.setLabel(`Rep ${rep}/${reps} — 4s`); beep(880,180);} return;
+          if(prep<=0){ state='work'; rep=1; controller.setLabel(`Rep ${rep}/${reps} — 4s`); beep(880,180);} return;
         }
         if(state==='work'){
-          sec+=1; const within=4-((sec-1)%4); if(exCadence) exCadence.textContent=`Rep ${rep}/${reps} — ${within}s`; controller.setLabel(`Rep ${rep}/${reps} — ${within}s`);
+          sec+=1; const within=4-((sec-1)%4); controller.setLabel(`Rep ${rep}/${reps} — ${within}s`);
           if((sec-1)%4===0) beep(880,160);
-          if(sec%4===0){ if(rep>=reps){ clearInterval(timer); timer=null; controller.stop(); if(exCadence) exCadence.textContent='Done. Nice.'; beep(1200,220); setTimeout(()=>beep(900,260),260); try{ const i=getIndex(); setIndex(i+1); renderExercise(); }catch{} return;} rep+=1; }
+          if(sec%4===0){ if(rep>=reps){ clearInterval(timer); timer=null; controller.stop(); beep(1200,220); setTimeout(()=>beep(900,260),260); try{ const i=getIndex(); setIndex(i+1); renderExercise(); }catch{} return;} rep+=1; }
         }
       },1000);
     }
@@ -150,7 +171,6 @@
     if (resetBtn) resetBtn.addEventListener('click', ()=>{ setIndex(0); renderExercise(); cancel(); });
   })();
 
-  // Prayer timer using reusable controller
   (function(){
     const prayBtn = document.getElementById('prayBtn');
     if (!prayBtn) return;
@@ -159,5 +179,91 @@
     function start(){ if(id) clearInterval(id); s=60; controller.setRunning(true); controller.start(); controller.setLabel('60s'); id=setInterval(()=>{ s-=1; if(!controller.isHover()) controller.setLabel(`${String(s%60).padStart(2,'0')}s`); if(s<=0){ clearInterval(id); id=null; controller.stop(); beep(1200,220); setTimeout(()=>beep(900,260),260); } },1000); beep(800,160); }
     function cancel(){ if(id){ clearInterval(id); id=null; } controller.stop(); }
     prayBtn.addEventListener('click', ()=>{ if(controller.isRunning()) cancel(); else start(); });
+  })();
+
+  // Keyboard shortcuts: list-mode + timers + input helpers
+  (function(){
+    const intent = document.getElementById('intent');
+    const exStart = document.getElementById('exStart');
+    const journalBox = document.getElementById('journalBox');
+    const entriesBox = document.getElementById('journalEntries');
+    const prayBtn = document.getElementById('prayBtn');
+    const overlay = document.getElementById('overlay');
+    const overlayMsg = document.getElementById('overlayMsg');
+    const saveBtn = document.getElementById('saveIntent');
+
+    let listMode = false;
+    let selected = -1;
+
+    function getEntries(){
+      return Array.from((entriesBox||{}).querySelectorAll('.entry')||[]);
+    }
+    function clearSelection(){ getEntries().forEach(el=>el.classList.remove('selected')); }
+    function ensureVisible(el){
+      if (!el || !journalBox) return;
+      const pr = journalBox.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      if (er.top < pr.top) el.scrollIntoView({block:'nearest'});
+      else if (er.bottom > pr.bottom) el.scrollIntoView({block:'nearest'});
+    }
+    function enterListMode(){
+      const items = getEntries(); if (!items.length) return;
+      listMode = true; selected = 0; clearSelection();
+      items[selected].classList.add('selected'); ensureVisible(items[selected]);
+    }
+    function exitListMode(){ listMode = false; selected = -1; clearSelection(); }
+    function moveSel(delta){
+      const items = getEntries(); if (!items.length) return;
+      selected = Math.max(0, Math.min(items.length-1, selected + delta));
+      clearSelection(); items[selected].classList.add('selected'); ensureVisible(items[selected]);
+    }
+    function showOverlay(text){
+      if (!overlay) return;
+      if (overlayMsg) overlayMsg.textContent = text;
+      overlay.classList.add('show');
+      setTimeout(()=>{ overlay.classList.remove('show'); }, 900);
+    }
+    async function copySelected(){
+      const items = getEntries(); if (!items.length || selected < 0) return;
+      const node = items[selected];
+      const html = node.innerHTML; const parts = html.split('<br>');
+      const textHtml = parts.slice(1).join('<br>');
+      const tmp = document.createElement('div'); tmp.innerHTML = textHtml;
+      const text = tmp.textContent || '';
+      try { await navigator.clipboard.writeText(text); } catch {}
+      node.classList.add('copied'); setTimeout(()=>{ node.classList.remove('copied'); }, 700);
+      showOverlay('Copied to clipboard');
+      exitListMode();
+    }
+    function isTypingContext(el){
+      if (!el) return false;
+      const tag = (el.tagName||'').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
+      if (el.isContentEditable) return true;
+      const ce = el.closest && el.closest('[contenteditable="true"]');
+      if (ce) return true;
+      return false;
+    }
+    document.addEventListener('keydown', (ev)=>{
+      const key = ev.key.toLowerCase();
+      const active = document.activeElement;
+      // If typing: handle Escape to blur and Cmd+Enter to submit, otherwise pass through
+      if (isTypingContext(active)) {
+        if (key === 'escape') { ev.preventDefault(); if (active && active.blur) active.blur(); return; }
+        if (key === 'enter' && (ev.metaKey || ev.ctrlKey)) { ev.preventDefault(); if (saveBtn) saveBtn.click(); return; }
+        return;
+      }
+      if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+      if (listMode) {
+        if (key === 'j') { ev.preventDefault(); moveSel(1); return; }
+        if (key === 'k') { ev.preventDefault(); moveSel(-1); return; }
+        if (key === 'c') { ev.preventDefault(); copySelected(); return; }
+        if (key === 'escape') { ev.preventDefault(); exitListMode(); return; }
+      }
+      if (key === 'p') { ev.preventDefault(); if (prayBtn) prayBtn.click(); return; }
+      if (key === 's') { ev.preventDefault(); if (exStart) exStart.click(); return; }
+      if (key === 'j') { ev.preventDefault(); if (intent) intent.focus(); return; }
+      if (key === 'l') { ev.preventDefault(); enterListMode(); return; }
+    });
   })();
 })();
