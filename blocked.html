@@ -197,7 +197,7 @@
         display: grid;
         place-items: center;
         height: 220px;
-        margin: 12px 0;
+        margin-top: 12px;
         border: 1px dashed #243242;
         border-radius: 12px;
         background: #0a1322;
@@ -333,8 +333,9 @@
           <h3>1‑minute reading</h3>
           <button class="btn ghost" id="readClose">Close</button>
         </div>
-        <div class="controls" style="margin:10px 0 6px 0; display: flex; justify-content: space-between; align-items: center;">
-          <div style="display: flex; align-items: center; gap: 6px;">
+        <div class="reader"><div class="word" id="readWord">—</div></div>
+        <div class="controls" style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 16px;">
             <button class="btn" id="readStart">Start</button>
             <label class="muted" for="wpm">WPM</label>
             <input id="wpm" type="number" min="60" max="1200" step="10" value="250" />
@@ -342,7 +343,6 @@
           </div>
           <div class="muted" id="readStatus">Loading bundled text…</div>
         </div>
-        <div class="reader"><div class="word" id="readWord">—</div></div>
       </div>
     </div>
     <!-- Doodle modal -->

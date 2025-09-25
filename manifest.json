@@ -67,5 +67,8 @@
       "js": ["content-blocker.js"],
       "run_at": "document_start"
     }
-  ]
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
 }

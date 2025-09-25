@@ -60,6 +60,8 @@ function showDrawingModal() {
   if (!modal) return;
   
   addClass(modal, 'show');
+  // Remove aria-hidden when modal is shown to allow focus
+  modal.removeAttribute('aria-hidden');
   
   const canvas = getElementById('doodleCanvas');
   if (!canvas) return;
@@ -90,6 +92,8 @@ function hideDrawingModal() {
   const modal = getElementById('doodleModal');
   if (modal) {
     removeClass(modal, 'show');
+    // Restore aria-hidden when modal is hidden
+    modal.setAttribute('aria-hidden', 'true');
   }
 }
 
@@ -325,7 +329,9 @@ function showConfirmation(message, onConfirm) {
   document.body.appendChild(confirmModal);
   
   const cleanup = () => {
-    document.body.removeChild(confirmModal);
+    if (confirmModal && confirmModal.parentNode) {
+      confirmModal.parentNode.removeChild(confirmModal);
+    }
   };
   
   const handleKey = (e) => {
@@ -365,31 +371,17 @@ function showFeedback(message) {
   // Create new feedback element
   const feedbackEl = createElement('div', {
     id: 'doodleFeedback',
-    className: 'doodle-feedback',
-    style: {
-      position: 'fixed',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      background: '#065f46',
-      color: '#ffffff',
-      padding: '12px 20px',
-      borderRadius: '8px',
-      fontWeight: '600',
-      zIndex: '10001',
-      opacity: '0',
-      transition: 'opacity 0.3s ease'
-    }
+    className: 'doodle-feedback'
   });
   
   updateTextContent(feedbackEl, message);
   
-  // Add to modal
-  const panel = getElementById('doodleModal')?.querySelector('.panel');
-  if (panel) {
-    panel.appendChild(feedbackEl);
+  // Add to modal (not panel) to match CSS selector
+  const modal = getElementById('doodleModal');
+  if (modal) {
+    modal.appendChild(feedbackEl);
     
-    // Show feedback
+    // Show feedback with slight delay to ensure element is rendered
     setTimeout(() => {
       addClass(feedbackEl, 'show');
     }, 10);
@@ -402,6 +394,6 @@ function showFeedback(message) {
           feedbackEl.remove();
         }
       }, 300);
-    }, 1000);
+    }, 1500); // Show for 1.5 seconds
   }
 }

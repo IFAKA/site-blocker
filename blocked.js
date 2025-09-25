@@ -3,6 +3,8 @@
  * Orchestrates all modules using clean architecture
  */
 
+console.log('Blocked.js starting to load...');
+
 // Import domain layer
 import { createJournalEntry, validateJournalEntry, sortJournalEntries, formatJournalEntry } from './src/domain/Journal.js';
 import { getExerciseRoutine, createFlatExerciseArray, calculateExerciseProgress, getExerciseInfo, calculateExerciseTiming } from './src/domain/Exercise.js';
@@ -31,27 +33,54 @@ import { initializeKeyboardShortcuts } from './src/presentation/KeyboardControll
 import { clamp, debounce, throttle, formatTimestamp, parseUrl, extractDomain, isWordChar, findNextWordIndex, findPrevWordIndex, isSentencePunct, getTokenBefore, looksLikeSentenceBoundary, findNextSentenceIndex, findPrevSentenceIndex } from './src/shared/Utils.js';
 import { STORAGE_KEYS, DEFAULT_SETTINGS, KEYBOARD_SHORTCUTS, EXERCISE_ROUTINE, AUDIO_CONFIG, UI_CONFIG, CANVAS_CONFIG } from './src/shared/Constants.js';
 
+console.log('All imports loaded successfully');
+
 /**
  * Main application initialization
  */
 (function() {
+  console.log('Starting main application initialization...');
+  
   // Get URL parameters
   const params = new URLSearchParams(location.search);
   const from = params.get('from');
+  console.log('URL parameters loaded, from:', from);
   
-  // Initialize all modules
-  initializeJournal(from);
-  initializeExercise();
-  initializeReading();
-  initializeDrawing();
-  initializeKeyboardShortcuts();
-  
-  // Initialize prayer functionality
-  initializePrayer();
+  try {
+    // Initialize all modules
+    console.log('Initializing journal...');
+    initializeJournal(from);
+    console.log('Journal initialized');
+    
+    console.log('Initializing exercise...');
+    initializeExercise();
+    console.log('Exercise initialized');
+    
+    console.log('Initializing reading...');
+    initializeReading();
+    console.log('Reading initialized');
+    
+    console.log('Initializing drawing...');
+    initializeDrawing();
+    console.log('Drawing initialized');
+    
+    console.log('Initializing keyboard shortcuts...');
+    initializeKeyboardShortcuts();
+    console.log('Keyboard shortcuts initialized');
+    
+    // Initialize prayer functionality
+    console.log('Initializing prayer...');
+    initializePrayer();
+    console.log('Prayer initialized');
+  } catch (error) {
+    console.error('Error during initialization:', error);
+  }
   
   // Make doodle modal globally accessible
   window.showDoodleModal = () => {
+    console.log('showDoodleModal called');
     const doodleBtn = getElementById('doodleBtn');
+    console.log('doodleBtn found:', !!doodleBtn);
     if (doodleBtn) {
       doodleBtn.click();
     }
@@ -66,7 +95,9 @@ import { STORAGE_KEYS, DEFAULT_SETTINGS, KEYBOARD_SHORTCUTS, EXERCISE_ROUTINE, A
  * Initialize prayer functionality
  */
 function initializePrayer() {
+  console.log('initializePrayer called');
   const prayBtn = getElementById('prayBtn');
+  console.log('prayBtn found:', !!prayBtn);
   if (!prayBtn) return;
   
   const controller = createHoverCancelController(prayBtn, prayBtn.textContent || '1‑min prayer');
@@ -74,6 +105,7 @@ function initializePrayer() {
   let timer = null;
   
   function start() {
+    console.log('Prayer start function called');
     if (timer) clearInterval(timer);
     seconds = 60;
     controller.setRunning(true);
@@ -89,10 +121,12 @@ function initializePrayer() {
         clearInterval(timer);
         timer = null;
         controller.stop();
+        console.log('Prayer complete, playing beep');
         playPrayerCompleteBeep();
       }
     }, 1000);
     
+    console.log('Playing start beep');
     playBeep(800, 160);
   }
   
@@ -105,6 +139,7 @@ function initializePrayer() {
   }
   
   addEventListener(prayBtn, 'click', () => {
+    console.log('Prayer button clicked, isRunning:', controller.isRunning());
     if (controller.isRunning()) {
       cancel();
     } else {

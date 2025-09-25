@@ -61,6 +61,8 @@ async function showReadingModal() {
   if (!modal) return;
   
   addClass(modal, 'show');
+  // Remove aria-hidden when modal is shown to allow focus
+  modal.removeAttribute('aria-hidden');
   updateReadingInfo();
   
   const wpmInput = getElementById('wpm');
@@ -106,6 +108,8 @@ function hideReadingModal() {
   const modal = getElementById('readModal');
   if (modal) {
     removeClass(modal, 'show');
+    // Restore aria-hidden when modal is hidden
+    modal.setAttribute('aria-hidden', 'true');
   }
   cancelReading();
 }
@@ -606,25 +610,7 @@ function handleModalKeydown(ev) {
   
   if (key === 'j') {
     ev.preventDefault();
-    const newWpm = Math.max(60, getCurrentReadingWPM() - 10);
-    setCurrentReadingWPM(newWpm);
-    
-    // Update WPM input field to reflect the change
-    const wpmInput = getElementById('wpm');
-    if (wpmInput) {
-      wpmInput.value = String(newWpm);
-    }
-    
-    if (readingRunning) {
-      // Recalculate countdown for remaining words
-      const remainingWords = readingWords.length - readingPos;
-      if (remainingWords > 0) {
-        const remainingTime = Math.ceil((remainingWords / newWpm) * 60);
-        startCountdown(remainingTime);
-      }
-      stepReading();
-    }
-    updateReadingInfo();
+    handleJournalAction();
     return;
   }
 }
@@ -704,10 +690,10 @@ function handleParagraphKey(ev, key) {
     }
   }
   
-  // j/k for up/down navigation (same as left/right for now)
-  if (key === 'j' || key === 'k' || ev.key === 'ArrowUp' || ev.key === 'ArrowDown') {
+  // Arrow keys for navigation
+  if (ev.key === 'ArrowUp' || ev.key === 'ArrowDown') {
     ev.preventDefault();
-    const dir = (key === 'k' || ev.key === 'ArrowUp') ? -1 : 1;
+    const dir = (ev.key === 'ArrowUp') ? -1 : 1;
     
     if (!selActive) {
       setCollapsedCaret(lastCaretIndex + dir);
@@ -828,22 +814,60 @@ function moveChar(dir) {
   applySelection();
 }
 
+
 /**
- * Set collapsed caret position
- * @param {number} index - Caret index
+ * Show feedback message
+ * @param {string} message - Feedback message
  */
-function setCollapsedCaret(index) {
-  lastCaretIndex = clamp(index, 0, paraText.length);
-  try {
-    const s = window.getSelection();
-    if (s && readingParaEl) {
-      s.removeAllRanges();
-      const range = document.createRange();
-      range.setStart(readingParaEl.firstChild, lastCaretIndex);
-      range.collapse(true);
-      s.addRange(range);
+function showReadingFeedback(message) {
+  // Remove any existing feedback
+  const existingFeedback = getElementById('readFeedback');
+  if (existingFeedback) {
+    existingFeedback.remove();
+  }
+  
+  // Create new feedback element
+  const feedbackEl = createElement('div', {
+    id: 'readFeedback',
+    className: 'doodle-feedback',
+    style: {
+      position: 'fixed',
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      background: '#065f46',
+      color: '#ffffff',
+      padding: '12px 20px',
+      borderRadius: '8px',
+      fontWeight: '600',
+      zIndex: '10001',
+      opacity: '0',
+      transition: 'opacity 0.3s ease'
     }
-  } catch {}
+  });
+  
+  updateTextContent(feedbackEl, message);
+  
+  // Add to modal
+  const modal = getElementById('readModal');
+  if (modal) {
+    modal.appendChild(feedbackEl);
+    
+    // Show feedback with slight delay to ensure element is rendered
+    setTimeout(() => {
+      addClass(feedbackEl, 'show');
+    }, 10);
+    
+    // Remove after animation
+    setTimeout(() => {
+      removeClass(feedbackEl, 'show');
+      setTimeout(() => {
+        if (feedbackEl.parentNode) {
+          feedbackEl.remove();
+        }
+      }, 300);
+    }, 1500); // Show for 1.5 seconds
+  }
 }
 
 /**
@@ -853,15 +877,33 @@ function copySelection() {
   const t = (selText && selText.trim()) || paraText;
   try {
     navigator.clipboard.writeText(t);
-    const statusEl = getElementById('readStatus');
-    if (statusEl) {
-      const prev = statusEl.textContent;
-      updateTextContent(statusEl, 'Copied to clipboard');
-      setTimeout(() => {
-        if (statusEl) updateTextContent(statusEl, prev || '');
-      }, 900);
+    showReadingFeedback('Copied to clipboard!');
+  } catch {
+    showReadingFeedback('Copy failed');
+  }
+}
+
+/**
+ * Handle journal action (from main modal)
+ */
+function handleJournalAction() {
+  const txt = (selText && selText.trim()) || paraText;
+  try {
+    const intent = getElementById('intent');
+    if (intent) {
+      // Set the textarea to the selected/full paragraph
+      intent.value = txt || '';
+      // Ensure two newlines at the end for quick continuation typing
+      const val = String(intent.value || '');
+      const needs = /\n\n$/.test(val) ? '' : (val.endsWith('\n') ? '\n' : '\n\n');
+      intent.value = val + needs;
+      intent.focus();
     }
-  } catch {}
+    showReadingFeedback('Added to journal!');
+    hideReadingModal();
+  } catch {
+    showReadingFeedback('Journal failed');
+  }
 }
 
 /**
@@ -880,8 +922,11 @@ function journalSelection() {
       intent.value = val + needs;
       intent.focus();
     }
+    showReadingFeedback('Added to journal!');
     hideReadingModal();
-  } catch {}
+  } catch {
+    showReadingFeedback('Journal failed');
+  }
 }
 
 /**
@@ -944,34 +989,7 @@ function prevSentenceIndex(index) {
   return i;
 }
 
-/**
- * Clamp value between min and max
- * @param {number} value - Value to clamp
- * @param {number} min - Minimum value
- * @param {number} max - Maximum value
- * @returns {number} Clamped value
- */
-function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
-}
 
-/**
- * Attach pointer events to paragraph element
- */
-function attachParagraphPointerEvents() {
-  if (!readingParaEl) return;
-  
-  // Handle clicks to set caret position
-  addEventListener(readingParaEl, 'click', (ev) => {
-    try {
-      const range = document.caretRangeFromPoint(ev.clientX, ev.clientY);
-      if (range && readingParaEl.contains(range.startContainer)) {
-        lastCaretIndex = range.startOffset;
-        clearSelection();
-      }
-    } catch {}
-  });
-}
 
 /**
  * Handle toggle reading (start/pause/resume)
