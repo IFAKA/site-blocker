@@ -1,0 +1,6 @@
+# Chrome MV3 generated rulesets
+_metadata/
+*/_metadata/
+
+# macOS
+.DS_Store

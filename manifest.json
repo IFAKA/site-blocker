@@ -1,0 +1,62 @@
+{
+  "manifest_version": 3,
+  "name": "Simple Site Blocker",
+  "description": "Blocks distracting/harmful sites with path-based exceptions for direct content.",
+  "version": "1.0.0",
+  "action": {
+    "default_title": "Simple Site Blocker"
+  },
+  "permissions": [
+    "declarativeNetRequest",
+    "declarativeNetRequestWithHostAccess",
+    "declarativeNetRequestFeedback"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "ruleset",
+        "enabled": true,
+        "path": "ruleset.json"
+      }
+    ]
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["blocked.html"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.youtube.com/*",
+        "*://youtu.be/*",
+        "*://*.reddit.com/*",
+        "*://boards.4channel.org/*",
+        "*://boards.4chan.org/*",
+        "*://4chan.org/*",
+        "*://x.com/*",
+        "*://www.x.com/*",
+        "*://twitter.com/*",
+        "*://www.twitter.com/*",
+        "*://*.pinterest.com/*",
+        "*://*.pornhub.com/*",
+        "*://*.xvideos.com/*",
+        "*://*.xhamster.com/*",
+        "*://*.redtube.com/*",
+        "*://*.youporn.com/*",
+        "*://*.xnxx.com/*",
+        "*://*.spankbang.com/*",
+        "*://rule34.xxx/*",
+        "*://*.nhentai.net/*",
+        "*://*.hanime.tv/*",
+        "*://*.f95zone.to/*"
+      ],
+      "js": ["content-blocker.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

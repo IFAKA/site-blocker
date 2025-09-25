@@ -1,0 +1,96 @@
+[
+  { "id": 1, "priority": 10, "action": { "type": "allow" }, "condition": { "urlFilter": "||youtube.com/watch", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 2, "priority": 10, "action": { "type": "allow" }, "condition": { "urlFilter": "||m.youtube.com/watch", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 3, "priority": 10, "action": { "type": "allow" }, "condition": { "urlFilter": "||music.youtube.com/watch", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 4, "priority": 10, "action": { "type": "allow" }, "condition": { "urlFilter": "||youtu.be/", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 5, "priority": 10, "action": { "type": "allow" }, "condition": { "urlFilter": "||youtube.com/shorts/", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 6, "priority": 10, "action": { "type": "allow" }, "condition": { "urlFilter": "||youtube.com/embed/", "resourceTypes": ["main_frame", "sub_frame"] } },
+
+  { "id": 300, "priority": 3, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "urlFilter": "||youtube.com^", "resourceTypes": ["main_frame"] } },
+  { "id": 301, "priority": 3, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "urlFilter": "||www.youtube.com^", "resourceTypes": ["main_frame"] } },
+  { "id": 302, "priority": 3, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "urlFilter": "||m.youtube.com^", "resourceTypes": ["main_frame"] } },
+  { "id": 303, "priority": 3, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "urlFilter": "||music.youtube.com^", "resourceTypes": ["main_frame"] } },
+  { "id": 304, "priority": 3, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "urlFilter": "||consent.youtube.com^", "resourceTypes": ["main_frame"] } },
+
+  { "id": 310, "priority": 3, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "urlFilter": "||reddit.com^", "resourceTypes": ["main_frame"] } },
+  { "id": 311, "priority": 3, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "urlFilter": "||www.reddit.com^", "resourceTypes": ["main_frame"] } },
+  { "id": 312, "priority": 3, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "urlFilter": "||old.reddit.com^", "resourceTypes": ["main_frame"] } },
+
+  { "id": 320, "priority": 3, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "urlFilter": "||boards.4channel.org^", "resourceTypes": ["main_frame"] } },
+  { "id": 321, "priority": 3, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "urlFilter": "||boards.4chan.org^", "resourceTypes": ["main_frame"] } },
+  { "id": 322, "priority": 3, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "urlFilter": "||4chan.org^", "resourceTypes": ["main_frame"] } },
+
+  { "id": 83, "priority": 5, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "regexFilter": "^https?:\\/\\/(www\\.)?x\\.com\\/.*$", "resourceTypes": ["main_frame"] } },
+  { "id": 85, "priority": 5, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "regexFilter": "^https?:\\/\\/(www\\.)?x\\.com\\/?$", "resourceTypes": ["main_frame"] } },
+  { "id": 88, "priority": 5, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "urlFilter": "||x.com", "resourceTypes": ["main_frame"] } },
+  { "id": 89, "priority": 5, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "urlFilter": "||www.x.com", "resourceTypes": ["main_frame"] } },
+
+  { "id": 84, "priority": 5, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "regexFilter": "^https?:\\/\\/(www\\.)?twitter\\.com\\/.*$", "resourceTypes": ["main_frame"] } },
+  { "id": 86, "priority": 5, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "regexFilter": "^https?:\\/\\/(www\\.)?twitter\\.com\\/?$", "resourceTypes": ["main_frame"] } },
+  { "id": 90, "priority": 5, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "urlFilter": "||twitter.com", "resourceTypes": ["main_frame"] } },
+  { "id": 91, "priority": 5, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "urlFilter": "||www.twitter.com", "resourceTypes": ["main_frame"] } },
+
+  { "id": 87, "priority": 4, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "regexFilter": "^https?:\\/\\/([a-z0-9-]+\\.)?pinterest\\.com\\/.*$", "resourceTypes": ["main_frame"] } },
+
+  { "id": 400, "priority": 3, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "urlFilter": "||pornhub.com^", "resourceTypes": ["main_frame"] } },
+  { "id": 401, "priority": 3, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "urlFilter": "||xvideos.com^", "resourceTypes": ["main_frame"] } },
+  { "id": 402, "priority": 3, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "urlFilter": "||xhamster.com^", "resourceTypes": ["main_frame"] } },
+  { "id": 403, "priority": 3, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "urlFilter": "||redtube.com^", "resourceTypes": ["main_frame"] } },
+  { "id": 404, "priority": 3, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "urlFilter": "||youporn.com^", "resourceTypes": ["main_frame"] } },
+  { "id": 405, "priority": 3, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "urlFilter": "||xnxx.com^", "resourceTypes": ["main_frame"] } },
+  { "id": 406, "priority": 3, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "urlFilter": "||spankbang.com^", "resourceTypes": ["main_frame"] } },
+  { "id": 407, "priority": 3, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "urlFilter": "||rule34.xxx^", "resourceTypes": ["main_frame"] } },
+  { "id": 408, "priority": 3, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "urlFilter": "||nhentai.net^", "resourceTypes": ["main_frame"] } },
+  { "id": 409, "priority": 3, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "urlFilter": "||hanime.tv^", "resourceTypes": ["main_frame"] } },
+  { "id": 410, "priority": 3, "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html" } }, "condition": { "urlFilter": "||f95zone.to^", "resourceTypes": ["main_frame"] } },
+
+  { "id": 14, "priority": 2, "action": { "type": "block" }, "condition": { "regexFilter": "^https?:\\/\\/(www\\.)?youtube\\.com\\/?$", "resourceTypes": ["main_frame"] } },
+  { "id": 15, "priority": 2, "action": { "type": "block" }, "condition": { "regexFilter": "^https?:\\/\\/m\\.youtube\\.com\\/?$", "resourceTypes": ["main_frame"] } },
+  { "id": 16, "priority": 2, "action": { "type": "block" }, "condition": { "regexFilter": "^https?:\\/\\/music\\.youtube\\.com\\/?$", "resourceTypes": ["main_frame"] } },
+  { "id": 17, "priority": 2, "action": { "type": "block" }, "condition": { "regexFilter": "^https?:\\/\\/consent\\.youtube\\.com\\/?$", "resourceTypes": ["main_frame"] } },
+
+  { "id": 60, "priority": 2, "action": { "type": "block" }, "condition": { "regexFilter": "^https?:\\/\\/(www\\.)?reddit\\.com\\/?$", "resourceTypes": ["main_frame"] } },
+  { "id": 61, "priority": 2, "action": { "type": "block" }, "condition": { "regexFilter": "^https?:\\/\\/old\\.reddit\\.com\\/?$", "resourceTypes": ["main_frame"] } },
+
+  { "id": 70, "priority": 2, "action": { "type": "block" }, "condition": { "regexFilter": "^https?:\\/\\/boards\\.4channel\\.org\\/?$", "resourceTypes": ["main_frame"] } },
+  { "id": 71, "priority": 2, "action": { "type": "block" }, "condition": { "regexFilter": "^https?:\\/\\/boards\\.4chan\\.org\\/?$", "resourceTypes": ["main_frame"] } },
+  { "id": 72, "priority": 2, "action": { "type": "block" }, "condition": { "regexFilter": "^https?:\\/\\/4chan\\.org\\/?$", "resourceTypes": ["main_frame"] } },
+
+  { "id": 20, "priority": 10, "action": { "type": "allow" }, "condition": { "urlFilter": "||reddit.com/comments/", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 21, "priority": 10, "action": { "type": "allow" }, "condition": { "urlFilter": "||reddit.com/r/*/comments/", "resourceTypes": ["main_frame", "sub_frame"], "isUrlFilterCaseSensitive": false } },
+  { "id": 22, "priority": 10, "action": { "type": "allow" }, "condition": { "urlFilter": "||old.reddit.com/r/*/comments/", "resourceTypes": ["main_frame", "sub_frame"], "isUrlFilterCaseSensitive": false } },
+  { "id": 23, "priority": 10, "action": { "type": "allow" }, "condition": { "urlFilter": "||redd.it/", "resourceTypes": ["main_frame", "sub_frame"] } },
+
+  { "id": 40, "priority": 10, "action": { "type": "allow" }, "condition": { "urlFilter": "||boards.4channel.org/sci/", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 41, "priority": 10, "action": { "type": "allow" }, "condition": { "urlFilter": "||boards.4channel.org/g/", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 42, "priority": 10, "action": { "type": "allow" }, "condition": { "urlFilter": "||boards.4channel.org/his/", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 43, "priority": 10, "action": { "type": "allow" }, "condition": { "urlFilter": "||boards.4channel.org/lit/", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 44, "priority": 10, "action": { "type": "allow" }, "condition": { "urlFilter": "||boards.4channel.org/diy/", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 45, "priority": 10, "action": { "type": "allow" }, "condition": { "urlFilter": "||boards.4channel.org/ck/", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 46, "priority": 10, "action": { "type": "allow" }, "condition": { "urlFilter": "||boards.4channel.org/fit/", "resourceTypes": ["main_frame", "sub_frame"] } },
+
+  { "id": 10, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||youtube.com^", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 11, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||m.youtube.com^", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 12, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||music.youtube.com^", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 13, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||www.youtube.com^", "resourceTypes": ["main_frame", "sub_frame"] } },
+
+  { "id": 120, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||x.com^", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 121, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||twitter.com^", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 122, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||pinterest.com^", "resourceTypes": ["main_frame", "sub_frame"] } },
+
+  { "id": 50, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||4chan.org^", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 51, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||boards.4channel.org^", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 52, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||boards.4chan.org^", "resourceTypes": ["main_frame", "sub_frame"] } },
+
+  { "id": 100, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||pornhub.com^", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 101, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||xvideos.com^", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 102, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||xhamster.com^", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 103, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||redtube.com^", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 104, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||youporn.com^", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 105, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||xnxx.com^", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 106, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||spankbang.com^", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 107, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||rule34.xxx^", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 108, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||nhentai.net^", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 109, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||hanime.tv^", "resourceTypes": ["main_frame", "sub_frame"] } },
+  { "id": 110, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||f95zone.to^", "resourceTypes": ["main_frame", "sub_frame"] } }
+]
