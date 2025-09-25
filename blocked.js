@@ -350,8 +350,7 @@
     wpmInput && wpmInput.addEventListener('change', ()=>{ const v=parseInt(wpmInput.value||'250',10); const clamped = Number.isNaN(v)?250:Math.max(60, Math.min(1200, v)); setWpm(clamped); if (running) step(); updateInfo(); });
     // no import UI anymore
 
-    // Close on backdrop click
-    modal.addEventListener('click', (ev)=>{ if (ev.target === modal) hideModal(); });
+    // Removed click-outside-to-close functionality
     // Modal-scoped keybindings
     document.addEventListener('keydown', (ev)=>{
       if (!modal.classList.contains('show')) return;
@@ -665,6 +664,446 @@
     loadBook(false);
   })();
 
+  // Doodle modal functionality
+  (function(){
+    const modal = document.getElementById('doodleModal');
+    const closeBtn = document.getElementById('doodleClose');
+    const canvas = document.getElementById('doodleCanvas');
+    const clearBtn = document.getElementById('doodleClear');
+    
+    if (!modal || !canvas) return;
+
+    let ctx = null;
+    let isDrawing = false;
+    let zoom = 1;
+    let panX = 0;
+    let panY = 0;
+    let lastX = 0;
+    let lastY = 0;
+    let undoStack = [];
+    let redoStack = [];
+    let mouseX = 0;
+    let mouseY = 0;
+
+    function initCanvas() {
+      ctx = canvas.getContext('2d');
+      const container = canvas.parentElement;
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      // Save initial blank state
+      saveState();
+    }
+
+    function showModal() {
+      modal.classList.add('show');
+      if (!ctx) initCanvas();
+      clearCanvas();
+      // Save initial blank state
+      saveState();
+    }
+
+    function hideModal() {
+      modal.classList.remove('show');
+    }
+
+    function clearCanvas() {
+      if (!ctx) return;
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    }
+
+    function saveState() {
+      if (!ctx) return;
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      undoStack.push(imageData);
+      // Limit undo stack to 20 states
+      if (undoStack.length > 20) {
+        undoStack.shift();
+      }
+      // Clear redo stack when new action is performed
+      redoStack = [];
+    }
+
+    function undo() {
+      if (undoStack.length <= 1) return; // Don't undo past initial state
+      const currentState = undoStack.pop();
+      redoStack.push(currentState);
+      const previousState = undoStack[undoStack.length - 1];
+      if (previousState) {
+        ctx.putImageData(previousState, 0, 0);
+        showFeedback('Undone');
+      }
+    }
+
+    function redo() {
+      if (redoStack.length === 0) return;
+      const nextState = redoStack.pop();
+      undoStack.push(nextState);
+      ctx.putImageData(nextState, 0, 0);
+      showFeedback('Redone');
+    }
+
+    function showConfirmation(message, onConfirm) {
+      const confirmModal = document.createElement('div');
+      confirmModal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10001;
+      `;
+      
+      const confirmBox = document.createElement('div');
+      confirmBox.style.cssText = `
+        background: #0b1220;
+        border: 1px solid #334155;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        color: #e5e7eb;
+        max-width: 300px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      `;
+      
+      confirmBox.innerHTML = `
+        <div style="margin-bottom: 16px; font-weight: 600;">${message}</div>
+        <div style="margin-bottom: 16px; font-size: 0.9rem; color: #94a3b8;">Press Y to confirm, N to cancel</div>
+        <div style="display: flex; gap: 8px; justify-content: center;">
+          <button id="confirmNo" style="background: #334155; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">No</button>
+          <button id="confirmYes" style="background: #dc2626; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Yes</button>
+        </div>
+      `;
+      
+      confirmModal.appendChild(confirmBox);
+      document.body.appendChild(confirmModal);
+      
+      const cleanup = () => {
+        document.body.removeChild(confirmModal);
+      };
+      
+      const handleKey = (e) => {
+        const key = e.key.toLowerCase();
+        if (key === 'y') {
+          e.preventDefault();
+          cleanup();
+          onConfirm();
+        } else if (key === 'n' || key === 'q' || key === 'escape') {
+          e.preventDefault();
+          cleanup();
+        }
+      };
+      
+      document.addEventListener('keydown', handleKey);
+      confirmBox.querySelector('#confirmYes').onclick = () => {
+        cleanup();
+        onConfirm();
+      };
+      confirmBox.querySelector('#confirmNo').onclick = cleanup;
+      confirmModal.onclick = (e) => {
+        if (e.target === confirmModal) cleanup();
+      };
+      
+      // Remove event listener when modal is closed
+      const originalCleanup = cleanup;
+      cleanup = () => {
+        document.removeEventListener('keydown', handleKey);
+        originalCleanup();
+      };
+    }
+
+    function getMousePos(e) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (e.clientX - rect.left - panX) / zoom,
+        y: (e.clientY - rect.top - panY) / zoom
+      };
+    }
+
+    function startDrawing(e) {
+      if (!ctx) return;
+      isDrawing = true;
+      const pos = getMousePos(e);
+      lastX = pos.x;
+      lastY = pos.y;
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+    }
+
+    function draw(e) {
+      if (!isDrawing || !ctx) return;
+      const pos = getMousePos(e);
+      ctx.save();
+      ctx.scale(zoom, zoom);
+      ctx.translate(panX / zoom, panY / zoom);
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+      ctx.restore();
+      lastX = pos.x;
+      lastY = pos.y;
+    }
+
+    function stopDrawing() {
+      if (isDrawing) {
+        isDrawing = false;
+        // Save state after completing a stroke
+        saveState();
+      }
+    }
+
+    function adjustZoom(delta, centerX = null, centerY = null) {
+      const oldZoom = zoom;
+      const newZoom = Math.max(0.1, Math.min(5, zoom + delta));
+      
+      if (newZoom !== oldZoom) {
+        // If no center point provided, use canvas center
+        if (centerX === null || centerY === null) {
+          centerX = canvas.width / 2;
+          centerY = canvas.height / 2;
+        }
+        
+        // Calculate zoom factor
+        const zoomFactor = newZoom / oldZoom;
+        
+        // Adjust pan to zoom at the specified point
+        panX = centerX - (centerX - panX) * zoomFactor;
+        panY = centerY - (centerY - panY) * zoomFactor;
+        
+        zoom = newZoom;
+        
+        // Apply the new transform
+        ctx.save();
+        ctx.setTransform(zoom, 0, 0, zoom, panX, panY);
+        ctx.restore();
+      }
+    }
+
+    function showFeedback(message) {
+      // Remove any existing feedback
+      const existingFeedback = document.getElementById('doodleFeedback');
+      if (existingFeedback) {
+        existingFeedback.remove();
+      }
+      
+      // Create new feedback element
+      const feedbackEl = document.createElement('div');
+      feedbackEl.id = 'doodleFeedback';
+      feedbackEl.className = 'doodle-feedback';
+      feedbackEl.textContent = message;
+      
+      // Add to modal
+      const panel = modal.querySelector('.panel');
+      if (panel) {
+        panel.appendChild(feedbackEl);
+        
+        // Show feedback
+        setTimeout(() => {
+          feedbackEl.classList.add('show');
+        }, 10);
+        
+        // Remove after animation
+        setTimeout(() => {
+          feedbackEl.classList.remove('show');
+          setTimeout(() => {
+            if (feedbackEl.parentNode) {
+              feedbackEl.remove();
+            }
+          }, 300); // Wait for CSS transition
+        }, 1000);
+      }
+    }
+
+    function saveCanvas() {
+      try {
+        const imageData = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = `doodle-${Date.now()}.png`;
+        link.href = imageData;
+        link.click();
+        showFeedback('Saved!');
+      } catch (e) {
+        console.error('Error saving canvas:', e);
+        showFeedback('Save failed');
+      }
+    }
+
+    function copyCanvas() {
+      try {
+        canvas.toBlob(blob => {
+          if (blob) {
+            navigator.clipboard.write([
+              new ClipboardItem({ 'image/png': blob })
+            ]).then(() => {
+              showFeedback('Copied to clipboard!');
+            }).catch(() => {
+              showFeedback('Copy failed');
+            });
+          }
+        });
+      } catch (e) {
+        console.error('Error copying canvas:', e);
+        showFeedback('Copy failed');
+      }
+    }
+
+    // Event listeners
+    if (closeBtn) closeBtn.addEventListener('click', hideModal);
+    if (clearBtn) clearBtn.addEventListener('click', () => {
+      showConfirmation('Clear all drawing?', () => {
+        clearCanvas();
+        undoStack = [];
+        redoStack = [];
+        saveState(); // Save the cleared state
+        showFeedback('Cleared');
+      });
+    });
+
+    // Drawing events
+    canvas.addEventListener('mousedown', (e) => {
+      if (e.button === 0) { // Left mouse button
+        startDrawing(e);
+      }
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (e.buttons === 1) { // Left mouse button held
+        draw(e);
+      }
+    });
+
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseleave', stopDrawing);
+
+    // Spacebar drawing
+    let spacePressed = false;
+    document.addEventListener('keydown', (e) => {
+      if (!modal.classList.contains('show')) return;
+      
+      if (e.code === 'Space') {
+        e.preventDefault();
+        spacePressed = true;
+        canvas.style.cursor = 'crosshair';
+      }
+    });
+
+    document.addEventListener('keyup', (e) => {
+      if (!modal.classList.contains('show')) return;
+      
+      if (e.code === 'Space') {
+        e.preventDefault();
+        spacePressed = false;
+        canvas.style.cursor = 'default';
+        stopDrawing();
+      }
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      // Track mouse position for zooming
+      const rect = canvas.getBoundingClientRect();
+      mouseX = e.clientX - rect.left;
+      mouseY = e.clientY - rect.top;
+      
+      if (spacePressed && !isDrawing) {
+        startDrawing(e);
+      } else if (spacePressed && isDrawing) {
+        draw(e);
+      }
+    });
+
+    // Modal-specific keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (!modal.classList.contains('show')) return;
+      
+      const key = e.key.toLowerCase();
+      
+      // Zoom controls
+      if ((key === '-' || key === '_') && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        adjustZoom(-0.1, mouseX, mouseY);
+        return;
+      }
+      if ((key === '=' || key === '+') && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        adjustZoom(0.1, mouseX, mouseY);
+        return;
+      }
+      if ((key === '-' || key === '_') && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        adjustZoom(-0.2, mouseX, mouseY);
+        return;
+      }
+      if ((key === '=' || key === '+') && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        adjustZoom(0.2, mouseX, mouseY);
+        return;
+      }
+      
+      // Undo/Redo
+      if (key === 'z' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        undo();
+        return;
+      }
+      if (key === 'y' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        redo();
+        return;
+      }
+      
+      // Reset with confirmation
+      if (key === 'r') {
+        e.preventDefault();
+        showConfirmation('Reset all drawing?', () => {
+          clearCanvas();
+          undoStack = [];
+          redoStack = [];
+          saveState(); // Save the reset state
+          showFeedback('Reset');
+        });
+        return;
+      }
+      
+      // Save and copy
+      if (key === 's') {
+        e.preventDefault();
+        saveCanvas();
+        return;
+      }
+      if (key === 'c') {
+        e.preventDefault();
+        copyCanvas();
+        return;
+      }
+      
+      // Close modal
+      if (key === 'escape') {
+        e.preventDefault();
+        hideModal();
+        return;
+      }
+    });
+
+    // Removed click-outside-to-close functionality
+
+    // Global function to show doodle modal
+    window.showDoodleModal = showModal;
+  })();
+
   // Keyboard shortcuts: list-mode + timers + input helpers
   (function(){
     const intent = document.getElementById('intent');
@@ -673,6 +1112,7 @@
     const entriesBox = document.getElementById('journalEntries');
     const prayBtn = document.getElementById('prayBtn');
     const readBtn = document.getElementById('readBtn');
+    const doodleBtn = document.getElementById('doodleBtn');
     const overlay = document.getElementById('overlay');
     const overlayMsg = document.getElementById('overlayMsg');
     const saveBtn = document.getElementById('saveIntent');
@@ -731,9 +1171,19 @@
     }
     document.addEventListener('keydown', (ev)=>{
       const key = ev.key.toLowerCase();
-      // If any modal is open, ignore global shortcuts
+      // If any modal is open, only allow q to close
       const anyModalOpen = !!document.querySelector('.modal.show');
-      if (anyModalOpen) return;
+      if (anyModalOpen) {
+        if (key === 'q') {
+          ev.preventDefault();
+          // Close any open modal
+          const openModal = document.querySelector('.modal.show');
+          if (openModal) {
+            openModal.classList.remove('show');
+          }
+        }
+        return;
+      }
       const active = document.activeElement;
       // If typing: handle Escape to blur and Cmd+Enter to submit, otherwise pass through
       if (isTypingContext(active)) {
@@ -753,6 +1203,12 @@
       if (key === 's') { ev.preventDefault(); if (exStart) exStart.click(); return; }
       if (key === 'j') { ev.preventDefault(); if (intent) intent.focus(); return; }
       if (key === 'l') { ev.preventDefault(); enterListMode(); return; }
+      if (key === 'd') { ev.preventDefault(); if (window.showDoodleModal) window.showDoodleModal(); return; }
+    });
+
+    // Button event listeners
+    if (doodleBtn) doodleBtn.addEventListener('click', () => {
+      if (window.showDoodleModal) window.showDoodleModal();
     });
   })();
 })();
