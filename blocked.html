@@ -1,24 +1,196 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Blocked</title>
-  <style>
-    html, body { height: 100%; margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: #0f172a; color: #e2e8f0; }
-    .wrap { display: grid; place-items: center; height: 100%; padding: 2rem; text-align: center; }
-    h1 { font-size: 2rem; margin: 0.5rem 0; }
-    p { opacity: 0.8; }
-    .tip { margin-top: 1rem; font-size: 0.9rem; opacity: 0.7; }
-  </style>
-</head>
-<body>
-<div class="wrap">
-  <div>
-    <h1>Blocked</h1>
-    <p>This site is blocked by Simple Site Blocker.</p>
-    <p class="tip">You can still open direct content links (e.g., YouTube watch URLs) if allowed by rules.</p>
-  </div>
-</div>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Blocked</title>
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        background: #0f172a;
+        color: #e2e8f0;
+      }
+      .wrap {
+        display: grid;
+        place-items: center;
+        height: 100%;
+        padding: 2rem;
+      }
+      .card {
+        width: 100%;
+        max-width: 880px;
+        background: #111827;
+        border: 1px solid #1f2937;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      }
+      h1 {
+        font-size: 1.75rem;
+        margin: 0 0 0.25rem 0;
+      }
+      .sub {
+        opacity: 0.8;
+        margin-bottom: 1rem;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      @media (min-width: 920px) {
+        .row {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      textarea {
+        width: 100%;
+        min-height: 100px;
+        resize: vertical;
+        background: #0b1220;
+        color: #e5e7eb;
+        border: 1px solid #243242;
+        border-radius: 10px;
+        padding: 10px;
+      }
+      .btn {
+        background: #6366f1;
+        color: white;
+        border: 0;
+        padding: 10px 14px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+      }
+      .btn.secondary {
+        background: #334155;
+      }
+      .btn.ghost {
+        background: transparent;
+        border: 1px solid #334155;
+      }
+      .btn.cancel {
+        background: #dc2626;
+        border-color: #dc2626;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: #0b1220;
+        border: 1px solid #243242;
+      }
+      .muted {
+        opacity: 0.7;
+        font-size: 0.9rem;
+      }
+      .exercise {
+        margin-top: 16px;
+        padding: 14px;
+        border: 1px solid #243242;
+        border-radius: 10px;
+        background: #0b1220;
+      }
+      .exercise h3 {
+        margin: 0 0 6px 0;
+      }
+      .exercise .note {
+        opacity: 0.8;
+        font-size: 0.9rem;
+      }
+      .cadence {
+        margin-top: 8px;
+        font-weight: 600;
+      }
+      .journal {
+        margin-top: 16px;
+        padding: 12px;
+        border: 1px solid #243242;
+        border-radius: 10px;
+        background: #0b1220;
+        max-height: 220px;
+        overflow: auto;
+      }
+      .journal h3 {
+        margin: 0 0 6px 0;
+      }
+      .entry {
+        font-size: 0.92rem;
+        padding: 6px 8px;
+        border-bottom: 1px solid #1f2937;
+      }
+      .entry small {
+        opacity: 0.7;
+      }
+      .prayer {
+        margin-top: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .prayer .time {
+        font-weight: 700;
+        letter-spacing: 1px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h1>Blocked</h1>
+        <div class="sub">This site is blocked by Simple Site Blocker.</div>
+
+        <div class="row">
+          <div>
+            <div class="pill" id="context"></div>
+            <h3>What were you looking for?</h3>
+            <textarea
+              id="intent"
+              placeholder="Write the task, need, or feeling you were chasing..."
+            ></textarea>
+            <div style="display: flex; gap: 8px; margin-top: 8px">
+              <button class="btn" id="saveIntent">Commit to a next step</button>
+              <button class="btn secondary" id="clearIntent">Clear</button>
+            </div>
+            <div
+              class="muted"
+              id="intentSaved"
+              style="display: none; margin-top: 6px"
+            >
+              Saved locally (see Journal on the right).
+            </div>
+
+            <div class="exercise" id="exerciseBox">
+              <h3 id="exTitle">Exercise set</h3>
+              <div class="muted" id="exSubtitle"></div>
+              <div class="note" id="exNotes" style="margin-top: 6px"></div>
+              <div class="muted" id="exProgress" style="margin-top: 6px"></div>
+              <div class="cadence" id="exCadence"></div>
+              <div style="display: flex; gap: 8px; margin-top: 10px">
+                <button class="btn" id="exStart">
+                  Start set
+                </button>
+                <button class="btn ghost" id="exSkip">Skip once</button>
+                <button class="btn secondary" id="exReset">Reset cycle</button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <h3>Prayer</h3>
+            <button class="btn secondary" id="prayBtn">1‑min prayer</button>
+            <div class="journal" id="journalBox">
+              <h3>Journal</h3>
+              <div id="journalEntries" class="muted">No entries yet.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="blocked.js"></script>
+  </body>
 </html>
