@@ -27,6 +27,7 @@ import { initializeJournal } from './src/presentation/JournalController.js';
 import { initializeExercise, renderCurrentExercise } from './src/presentation/ExerciseController.js';
 import { initializeReading } from './src/presentation/ReadingController.js';
 import { initializeDrawing } from './src/presentation/DrawingController.js';
+import { initializeEyeHealth, showEyeHealthModal, hideEyeHealthModal } from './src/presentation/EyeHealthController.js';
 import { initializeKeyboardShortcuts } from './src/presentation/KeyboardController.js';
 
 // Import shared utilities
@@ -64,6 +65,10 @@ console.log('All imports loaded successfully');
     initializeDrawing();
     console.log('Drawing initialized');
     
+    console.log('Initializing eye health...');
+    initializeEyeHealth();
+    console.log('Eye health initialized');
+    
     console.log('Initializing keyboard shortcuts...');
     initializeKeyboardShortcuts();
     console.log('Keyboard shortcuts initialized');
@@ -84,6 +89,12 @@ console.log('All imports loaded successfully');
     if (doodleBtn) {
       doodleBtn.click();
     }
+  };
+  
+  // Make eye health modal globally accessible
+  window.showEyeHealthModal = () => {
+    console.log('showEyeHealthModal called');
+    showEyeHealthModal();
   };
   
   // Initialize exercise rendering

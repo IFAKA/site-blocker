@@ -42,6 +42,19 @@ export const KEYBOARD_SHORTCUTS = {
   JOURNAL: 'j',
   LIST_MODE: 'l',
   DOODLE: 'd',
+  EYE_HEALTH: 'e',
+  
+  // Intent shortcuts
+  SAVE_INTENT: 'enter',
+  CLEAR_INTENT: 'x',
+  
+  // Exercise shortcuts
+  EXERCISE_SKIP: 'n',
+  EXERCISE_RESET: 't',
+  
+  // Eye health shortcuts
+  EYE_SKIP: 'n',
+  EYE_RESET: 't',
   
   // Modal shortcuts
   CLOSE: 'q',

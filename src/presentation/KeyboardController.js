@@ -208,6 +208,15 @@ function handleGlobalKeydown(ev) {
   if (key === 'j') { ev.preventDefault(); const intent = getElementById('intent'); if (intent) focusElement(intent); return; }
   if (key === 'l') { ev.preventDefault(); enterListMode(); return; }
   if (key === 'd') { ev.preventDefault(); if (window.showDoodleModal) window.showDoodleModal(); return; }
+  if (key === 'e') { ev.preventDefault(); if (window.showEyeHealthModal) window.showEyeHealthModal(); return; }
+  
+  // Intent shortcuts
+  if (key === 'enter') { ev.preventDefault(); const saveBtn = getElementById('saveIntent'); if (saveBtn) saveBtn.click(); return; }
+  if (key === 'x') { ev.preventDefault(); const clearBtn = getElementById('clearIntent'); if (clearBtn) clearBtn.click(); return; }
+  
+  // Exercise shortcuts
+  if (key === 'n') { ev.preventDefault(); const exSkip = getElementById('exSkip'); if (exSkip) exSkip.click(); return; }
+  if (key === 't') { ev.preventDefault(); const exReset = getElementById('exReset'); if (exReset) exReset.click(); return; }
 }
 
 /**

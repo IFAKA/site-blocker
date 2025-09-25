@@ -124,3 +124,59 @@ export function resumeAudioContext(ctx) {
   
   return Promise.resolve(true);
 }
+
+/**
+ * Play eye health focus start sound
+ * @returns {Promise<boolean>} Success status
+ */
+export function playEyeHealthFocusStart() {
+  return playBeep(440, 200);
+}
+
+/**
+ * Play eye health movement start sound
+ * @returns {Promise<boolean>} Success status
+ */
+export function playEyeHealthMovementStart() {
+  return playBeep(550, 200);
+}
+
+/**
+ * Play eye health breathing start sound
+ * @returns {Promise<boolean>} Success status
+ */
+export function playEyeHealthBreathingStart() {
+  return playBeep(660, 200);
+}
+
+/**
+ * Play eye health relaxation start sound
+ * @returns {Promise<boolean>} Success status
+ */
+export function playEyeHealthRelaxationStart() {
+  return playBeep(330, 200);
+}
+
+/**
+ * Play eye health phase transition sound
+ * @returns {Promise<boolean>} Success status
+ */
+export function playEyeHealthPhaseTransition() {
+  return playBeep(880, 150);
+}
+
+/**
+ * Play eye health completion sound
+ * @returns {Promise<boolean>} Success status
+ */
+export function playEyeHealthComplete() {
+  return playExerciseCompleteBeep();
+}
+
+/**
+ * Play breathing cue sound (gentle tone)
+ * @returns {Promise<boolean>} Success status
+ */
+export function playBreathingCue() {
+  return playBeep(220, 100);
+}
