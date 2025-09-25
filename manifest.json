@@ -25,7 +25,10 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["blocked.html"],
+      "resources": [
+        "blocked.html",
+        "book.txt"
+      ],
       "matches": ["<all_urls>"]
     }
   ],

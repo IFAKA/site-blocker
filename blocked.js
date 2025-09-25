@@ -181,6 +181,480 @@
     prayBtn.addEventListener('click', ()=>{ if(controller.isRunning()) cancel(); else start(); });
   })();
 
+  // 1-minute reading RSVP modal
+  (function(){
+    const openBtn = document.getElementById('readBtn');
+    const modal = document.getElementById('readModal');
+    const closeBtn = document.getElementById('readClose');
+    if (!openBtn || !modal || !closeBtn) return;
+
+    const startBtn = document.getElementById('readStart');
+    const pauseBtn = document.getElementById('readPause');
+    const skipBtn = document.getElementById('readSkip');
+    const wordEl = document.getElementById('readWord');
+    const readerBox = document.querySelector('.reader');
+    const controlsEl = modal && modal.querySelector && modal.querySelector('.controls');
+    const wpmInput = document.getElementById('wpm');
+    const infoEl = document.getElementById('readInfo');
+    const statusEl = document.getElementById('readStatus');
+
+    // Store only in memory to avoid localStorage 5MB limit
+    let __BOOK_TEXT__ = '';
+    const keyBookMeta = 'site-blocker:reader:book:len';
+    const keyPtr = 'site-blocker:reader:pointer';
+    const keyWpm = 'site-blocker:reader:wpm';
+
+    function getStoredText(){ return __BOOK_TEXT__ || ''; }
+    function setStoredText(t){ __BOOK_TEXT__ = t || ''; try { localStorage.setItem(keyBookMeta, String(__BOOK_TEXT__.length)); } catch {} }
+    function getPointer(){ const v = parseInt(localStorage.getItem(keyPtr)||'0',10); return Number.isNaN(v)||v<0?0:v; }
+    function setPointer(v){ localStorage.setItem(keyPtr, String(Math.max(0, v))); }
+    function getWpm(){ const v=parseInt(localStorage.getItem(keyWpm)||String(wpmInput&&wpmInput.value||250),10); return Number.isNaN(v)?250:Math.max(60, Math.min(1200, v)); }
+    function setWpm(v){ localStorage.setItem(keyWpm, String(v)); if (wpmInput) wpmInput.value = String(v); }
+
+    function normalizeTextToParagraphs(text){
+      const cleaned = (text||'').replace(/\r\n?/g,'\n');
+      const paras = cleaned.split(/\n\s*\n+/).map(s=>s.trim()).filter(Boolean);
+      return paras;
+    }
+    function countWords(s){ return (s.match(/\b\w+\b/g)||[]).length; }
+    function computeChunk(paragraphs, pointer, wpm){
+      // pick as many next paragraphs as fit in ~60s by words at given wpm
+      const wordsPerMinute = Math.max(60, wpm);
+      const wordsBudget = wordsPerMinute; // 1 minute budget
+      let acc = [];
+      let totalWords = 0;
+      let idx = pointer % Math.max(1, paragraphs.length);
+      for (let i=0; i<paragraphs.length; i++) {
+        const p = paragraphs[idx];
+        const wc = countWords(p);
+        if (totalWords + wc <= wordsBudget || acc.length===0) {
+          acc.push(p); totalWords += wc; idx = (idx + 1) % paragraphs.length; if (totalWords >= wordsBudget) break;
+        } else {
+          break;
+        }
+      }
+      return { chunk: acc.join(' '), nextPtr: idx, words: totalWords };
+    }
+
+    let timer = null; let words = []; let pos = 0; let running=false; let chunkNextPtr=0; let currentChunkText='';
+    let paraEl=null;
+    function ensureParagraphEl(){
+      if (paraEl && paraEl.isConnected) return paraEl;
+      const panel = modal && modal.querySelector && modal.querySelector('.panel');
+      if (!panel) return null;
+      const el = document.createElement('div');
+      el.id = 'readParagraph';
+      el.setAttribute('tabindex', '0');
+      el.setAttribute('contenteditable', 'true');
+      el.style.outline = 'none';
+      el.style.width = '100%';
+      el.style.maxHeight = '260px';
+      el.style.overflow = 'auto';
+      el.style.padding = '12px';
+      el.style.borderRadius = '10px';
+      el.style.background = '#0a1322';
+      el.style.border = '1px solid #243242';
+      el.style.whiteSpace = 'pre-wrap';
+      el.style.marginTop = '8px';
+      panel.appendChild(el);
+      paraEl = el;
+      return paraEl;
+    }
+    function showParagraphView(text){
+      if (readerBox) readerBox.style.display = 'none';
+      if (controlsEl) controlsEl.style.display = 'none';
+      const el = ensureParagraphEl(); if (!el) return;
+      el.textContent = text || '';
+      el.style.display = '';
+      try { el.focus(); } catch {}
+      selectionInit(text||'');
+      attachParagraphPointerEvents();
+      // place visible caret at current pointer position (start)
+      setCollapsedCaret(lastCaretIndex);
+    }
+    function hideParagraphView(){
+      if (readerBox) readerBox.style.display = '';
+      if (controlsEl) controlsEl.style.display = '';
+      if (paraEl) paraEl.style.display = 'none';
+      clearNativeSelection();
+    }
+    function getOrCreateFullEl(){
+      let el = document.getElementById('readFull');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'readFull';
+        el.style.marginTop = '8px';
+        el.style.whiteSpace = 'pre-wrap';
+        el.style.border = '1px solid #243242';
+        el.style.borderRadius = '10px';
+        el.style.padding = '10px';
+        el.style.background = '#0a1322';
+        const panel = modal && modal.querySelector && modal.querySelector('.panel');
+        if (panel) panel.appendChild(el);
+      }
+      return el;
+    }
+    function clearFullEl(){
+      const el = document.getElementById('readFull');
+      if (el) el.textContent = '';
+    }
+    function updateInfo(){ if (!infoEl) return; const t=getStoredText(); const paras=normalizeTextToParagraphs(t); infoEl.textContent = `${paras.length} paragraphs • pointer ${getPointer()+1}/${Math.max(1,paras.length)} • WPM ${getWpm()}`; }
+    function showModal(){
+      modal.classList.add('show');
+      updateInfo();
+      if (wpmInput) wpmInput.value = String(getWpm());
+      if (wordEl) wordEl.textContent = '—';
+      clearFullEl();
+      hideParagraphView();
+      // Ensure text is loaded, then auto-start if available
+      Promise.resolve(loadBook(false)).then(()=>{ if (getStoredText()) start(); });
+    }
+    function hideModal(){ modal.classList.remove('show'); cancel(); }
+    function cancel(){ if (timer){ clearInterval(timer); timer=null; } running=false; }
+    function start(){ if (running) return; const t=getStoredText(); if (!t) { if(statusEl) statusEl.textContent='No text found. Ensure book.txt is bundled in the extension.'; return; }
+      const paras=normalizeTextToParagraphs(t); let ptr=getPointer(); const {chunk, nextPtr}=computeChunk(paras, ptr, getWpm()); currentChunkText = chunk; clearFullEl(); chunkNextPtr=nextPtr; words = chunk.split(/\s+/).filter(Boolean); pos = 0; running=true; step(); }
+    function pause(){ running=false; if (timer) { clearInterval(timer); timer=null; } }
+    function skip(){ pause(); const t=getStoredText(); if (!t) return; const paras=normalizeTextToParagraphs(t); setPointer(chunkNextPtr); updateInfo(); start(); }
+    function step(){
+      const wpm = getWpm();
+      const intervalMs = Math.max(40, Math.round(60000 / Math.max(1, wpm)));
+      if (timer) clearInterval(timer);
+      timer = setInterval(()=>{
+        if(!running) return;
+        if (pos >= words.length) {
+          clearInterval(timer); timer=null; running=false; setPointer(chunkNextPtr); updateInfo();
+          try { showParagraphView(currentChunkText); } catch {}
+          beep(1200,220); setTimeout(()=>beep(900,260),260); return;
+        }
+        const current = words[pos++];
+        if (wordEl) wordEl.textContent = current;
+      }, intervalMs);
+    }
+
+    // Events
+    openBtn.addEventListener('click', ()=>{ showModal(); });
+    closeBtn.addEventListener('click', ()=>{ hideModal(); });
+    startBtn && startBtn.addEventListener('click', ()=>{ running?null:start(); });
+    pauseBtn && pauseBtn.addEventListener('click', ()=>{ pause(); });
+    skipBtn && skipBtn.addEventListener('click', ()=>{ skip(); });
+    wpmInput && wpmInput.addEventListener('change', ()=>{ const v=parseInt(wpmInput.value||'250',10); const clamped = Number.isNaN(v)?250:Math.max(60, Math.min(1200, v)); setWpm(clamped); if (running) step(); updateInfo(); });
+    // no import UI anymore
+
+    // Close on backdrop click
+    modal.addEventListener('click', (ev)=>{ if (ev.target === modal) hideModal(); });
+    // Modal-scoped keybindings
+    document.addEventListener('keydown', (ev)=>{
+      if (!modal.classList.contains('show')) return;
+      const key = (ev.key || '').toLowerCase();
+      // Always allow Escape or q to close
+      if (key === 'escape' || key === 'q') { ev.preventDefault(); hideModal(); return; }
+      // If paragraph view is visible, enable keyboard selection UX
+      if (paraEl && paraEl.isConnected && paraEl.style.display !== 'none') {
+        if (handleParagraphKey(ev, key)) return;
+      }
+      // If typing in an input inside modal, don't hijack
+      const t = ev.target;
+      const tag = (t && t.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || (t && t.isContentEditable)) return;
+      // Space toggles start/pause
+      if (ev.key === ' ') { ev.preventDefault(); running ? pause() : start(); return; }
+      // l skips current chunk
+      if (key === 'l') { ev.preventDefault(); skip(); return; }
+      // j/k adjust WPM in 10 wpm steps (j: down, k: up)
+      if (key === 'k') { ev.preventDefault(); setWpm(Math.min(1200, getWpm()+10)); if (running) step(); updateInfo(); return; }
+      if (key === 'j') { ev.preventDefault(); setWpm(Math.max(60, getWpm()-10)); if (running) step(); updateInfo(); return; }
+    });
+
+    // Paragraph selection controller
+    let selText = '';
+    let selActive = false;
+    let selAnchor = 0; // fixed end of selection
+    let selFocus = 0;  // moving end of selection
+    let paraText = '';
+    let lastCaretIndex = 0; // updated from clicks within paragraph
+    function selectionInit(text){
+      paraText = text || '';
+      selActive = false; selAnchor = 0; selFocus = 0; selText = '';
+      clearNativeSelection();
+      lastCaretIndex = 0;
+    }
+    function clearNativeSelection(){
+      try { const s = window.getSelection(); if (s) s.removeAllRanges(); } catch {}
+    }
+    function setCollapsedCaret(pos){
+      if (!paraEl || !paraEl.firstChild) return;
+      const p = clamp(pos, 0, paraText.length);
+      const r = document.createRange();
+      r.setStart(paraEl.firstChild, p);
+      r.collapse(true);
+      const s = window.getSelection();
+      if (!s) return;
+      s.removeAllRanges();
+      s.addRange(r);
+      lastCaretIndex = p;
+      selFocus = p;
+    }
+    function getSelectionIfInsidePara(){
+      try {
+        const s = window.getSelection();
+        if (!s || s.rangeCount === 0) return null;
+        const r = s.getRangeAt(0);
+        if (!paraEl) return null;
+        if (!paraEl.contains(r.commonAncestorContainer)) return null;
+        return r;
+      } catch { return null; }
+    }
+    function getCaretOffsetFromPoint(x, y){
+      try {
+        if (document.caretRangeFromPoint) {
+          const range = document.caretRangeFromPoint(x, y);
+          if (range && range.startContainer && paraEl && paraEl.contains(range.startContainer)) {
+            return range.startOffset;
+          }
+        } else if (document.caretPositionFromPoint) {
+          const pos = document.caretPositionFromPoint(x, y);
+          if (pos && pos.offsetNode && paraEl && paraEl.contains(pos.offsetNode)) {
+            return pos.offset;
+          }
+        }
+      } catch {}
+      return null;
+    }
+    function attachParagraphPointerEvents(){
+      if (!paraEl) return;
+      paraEl.onmousedown = (e)=>{
+        const off = getCaretOffsetFromPoint(e.clientX, e.clientY);
+        if (off != null) lastCaretIndex = clamp(off, 0, paraText.length);
+      };
+      paraEl.onmouseup = (e)=>{
+        const off = getCaretOffsetFromPoint(e.clientX, e.clientY);
+        if (off != null) lastCaretIndex = clamp(off, 0, paraText.length);
+      };
+      paraEl.onkeyup = ()=>{
+        const r = getSelectionIfInsidePara();
+        if (r) lastCaretIndex = clamp(r.endOffset, 0, paraText.length);
+      };
+    }
+    function applySelection(){
+      if (!paraEl || !paraEl.firstChild) return;
+      clearNativeSelection();
+      const start = Math.max(0, Math.min(selAnchor, selFocus));
+      const end = Math.max(0, Math.max(selAnchor, selFocus));
+      const range = document.createRange();
+      const node = paraEl.firstChild; // text node
+      try { range.setStart(node, start); range.setEnd(node, end); } catch {}
+      const s = window.getSelection();
+      if (s) s.addRange(range);
+      selText = paraText.slice(start, end);
+    }
+    function moveChar(delta){ selFocus = clamp(selFocus + delta, 0, paraText.length); applySelection(); }
+    function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+    function isWordChar(ch){ return /[A-Za-z0-9_]/.test(ch); }
+    function nextWordIndex(idx){
+      let i = clamp(idx,0,paraText.length);
+      // skip current word/non-word then advance to start of next word
+      while (i < paraText.length && isWordChar(paraText[i])) i++;
+      while (i < paraText.length && !isWordChar(paraText[i])) i++;
+      return i;
+    }
+    function prevWordIndex(idx){
+      let i = clamp(idx,0,paraText.length);
+      // move left skipping spaces/non-word
+      while (i > 0 && !isWordChar(paraText[i-1])) i--;
+      // then move to start of current word
+      while (i > 0 && isWordChar(paraText[i-1])) i--;
+      return i;
+    }
+    const ABBREV = new Set(['mr','mrs','ms','dr','prof','sr','jr','st','vs','etc','e.g','i.e','fr','rev']);
+    function isSentencePunct(ch){ return /[\.\!\?]/.test(ch); }
+    function tokenBefore(index){
+      let i = Math.max(0, index-1);
+      // skip spaces and quotes
+      while (i > 0 && /[\s"'\)\]]/.test(paraText[i])) i--;
+      // collect letters before dot
+      let start = i;
+      while (start > 0 && /[A-Za-z]/.test(paraText[start-1])) start--;
+      return paraText.slice(start, i+1).toLowerCase();
+    }
+    function looksLikeSentenceBoundary(i){
+      // i points at punctuation; check abbreviation before and capitalization after
+      const prevTok = tokenBefore(i);
+      if (ABBREV.has(prevTok.replace(/\.$/, ''))) return false;
+      // Next non-space character should be uppercase letter to count as boundary
+      let j = i+1;
+      while (j < paraText.length && /\s/.test(paraText[j])) j++;
+      if (j < paraText.length && /[A-Z]/.test(paraText[j])) return true;
+      return /[\n]/.test(paraText[j]||'');
+    }
+    function nextSentenceIndex(idx){
+      let i = clamp(idx,0,paraText.length);
+      while (i < paraText.length) {
+        if (isSentencePunct(paraText[i]) && looksLikeSentenceBoundary(i)) {
+          i++;
+          while (i < paraText.length && /\s/.test(paraText[i])) i++;
+          break;
+        }
+        i++;
+      }
+      return i;
+    }
+    function prevSentenceIndex(idx){
+      let i = clamp(idx,0,paraText.length);
+      // move left skipping spaces
+      while (i > 0 && /\s/.test(paraText[i-1])) i--;
+      // find previous sentence boundary
+      let k = i-1;
+      while (k > 0) {
+        if (isSentencePunct(paraText[k]) && looksLikeSentenceBoundary(k)) { k--; break; }
+        k--;
+      }
+      // jump to start after that boundary
+      let start = k+1;
+      while (start < paraText.length && /\s/.test(paraText[start])) start++;
+      return clamp(start, 0, paraText.length);
+    }
+    function beginSelection(){
+      selActive = true;
+      // Prefer current caret/selection inside the paragraph
+      const r = getSelectionIfInsidePara();
+      if (r) {
+        selAnchor = clamp(r.startOffset, 0, paraText.length);
+      } else {
+        selAnchor = clamp(lastCaretIndex, 0, paraText.length);
+      }
+      selFocus = clamp(selAnchor+1, 0, paraText.length); // make 1-char visible
+      applySelection();
+    }
+    function clearSelection(){ selActive = false; selAnchor = selFocus; selText=''; clearNativeSelection(); }
+    function copySelection(){ const t = (selText && selText.trim()) || paraText; try{ navigator.clipboard.writeText(t); if (statusEl) { const prev = statusEl.textContent; statusEl.textContent = 'Copied to clipboard'; setTimeout(()=>{ if (statusEl) statusEl.textContent = prev || ''; }, 900); } }catch{} }
+    function journalSelection(){
+      const txt = (selText && selText.trim()) || paraText;
+      try {
+        const intent = document.getElementById('intent');
+        if (intent) {
+          // Set the textarea to the selected/full paragraph
+          intent.value = txt || '';
+          // Ensure two newlines at the end for quick continuation typing
+          const val = String(intent.value || '');
+          const needs = /\n\n$/.test(val) ? '' : (val.endsWith('\n') ? '\n' : '\n\n');
+          intent.value = val + needs;
+          // Move caret to end, focus, and scroll to keep caret visible
+          const end = intent.value.length;
+          if (typeof intent.setSelectionRange === 'function') intent.setSelectionRange(end, end);
+          intent.focus();
+          intent.scrollTop = intent.scrollHeight;
+        }
+      } catch {}
+      hideModal();
+    }
+    function handleParagraphKey(ev, key){
+      // allow tab navigation inside element
+      if (ev.key === 'Tab') return false;
+      // do not react if typing inside inputs (already filtered above)
+      const target = ev.target;
+      if (target && (target.tagName||'').toLowerCase() !== 'body' && target !== paraEl) {
+        // let clicks inside paragraph still work
+      }
+      // Controls:
+      // v: toggle selection (start at current focus)
+      if (key === 'v') { ev.preventDefault(); if (selActive) { clearSelection(); } else { beginSelection(); } return true; }
+      // 0 and $: jump
+      if (key === '0') { ev.preventDefault(); selFocus = 0; if (selActive) applySelection(); return true; }
+      if (ev.key === '$') { ev.preventDefault(); selFocus = paraText.length; if (selActive) applySelection(); return true; }
+      // h/l driven selection with modifiers:
+      // - h/l: char
+      // - Shift+h / Shift+l: word
+      // - Cmd+h / Cmd+l (or Ctrl as fallback): sentence
+      if (key === 'h' || key === 'l') {
+        ev.preventDefault();
+        if (!selActive) {
+          // caret-only movement
+          const dir = key === 'h' ? -1 : 1;
+          if (ev.metaKey || ev.ctrlKey) {
+            const next = dir < 0 ? prevSentenceIndex(lastCaretIndex) : nextSentenceIndex(lastCaretIndex);
+            setCollapsedCaret(next);
+            return true;
+          } else if (ev.shiftKey) {
+            const next = dir < 0 ? prevWordIndex(lastCaretIndex) : nextWordIndex(lastCaretIndex);
+            setCollapsedCaret(next);
+            return true;
+          } else {
+            setCollapsedCaret(lastCaretIndex + dir);
+            return true;
+          }
+        }
+        const dir = key === 'h' ? -1 : 1;
+        if (ev.metaKey || ev.ctrlKey) {
+          selFocus = dir < 0 ? prevSentenceIndex(selFocus) : nextSentenceIndex(selFocus);
+          applySelection();
+          return true;
+        } else if (ev.shiftKey) {
+          selFocus = dir < 0 ? prevWordIndex(selFocus) : nextWordIndex(selFocus);
+          applySelection();
+          return true;
+        } else {
+          moveChar(dir);
+          return true;
+        }
+      }
+      // Arrow keys move caret (no selection) until 'v' is pressed
+      if (ev.key === 'ArrowLeft') { ev.preventDefault(); if (!selActive) { setCollapsedCaret(lastCaretIndex-1); return true; } moveChar(-1); return true; }
+      if (ev.key === 'ArrowRight') { ev.preventDefault(); if (!selActive) { setCollapsedCaret(lastCaretIndex+1); return true; } moveChar(1); return true; }
+      // Optional legacy bindings
+      if (key === 'w') { ev.preventDefault(); if (!selActive) beginSelection(); selFocus = nextWordIndex(selFocus); applySelection(); return true; }
+      if (key === 'b') { ev.preventDefault(); if (!selActive) beginSelection(); selFocus = prevWordIndex(selFocus); applySelection(); return true; }
+      if (key === 's') { ev.preventDefault(); if (!selActive) beginSelection(); selFocus = nextSentenceIndex(selFocus); applySelection(); return true; }
+      if (key === 'a') { ev.preventDefault(); if (!selActive) beginSelection(); selFocus = prevSentenceIndex(selFocus); applySelection(); return true; }
+      // c: copy; j: to journal and close
+      if (key === 'c') { ev.preventDefault(); copySelection(); return true; }
+      if (key === 'j') { ev.preventDefault(); journalSelection(); return true; }
+      // escape clears selection
+      if (key === 'escape') { ev.preventDefault(); clearSelection(); return true; }
+      return false;
+    }
+
+    // Initialize: load bundled TXT (book.txt)
+    async function loadBook(force){
+      try {
+        if (force) { __BOOK_TEXT__=''; try{ localStorage.removeItem(keyBookMeta);}catch{} }
+        if (!getStoredText()) {
+          if (statusEl) statusEl.textContent = 'Loading text…';
+          const attempted = [];
+          const urls = [];
+          try { urls.push(chrome.runtime.getURL('book.txt')); } catch {}
+          urls.push('/book.txt');
+          urls.push('book.txt');
+          let txt = '';
+          let lastErr = '';
+          for (let i=0;i<urls.length;i++){
+            const u = urls[i]; attempted.push(u);
+            try {
+              const res = await fetch(u, { cache: 'no-store' });
+              if (res && res.ok) { txt = await res.text(); break; }
+              lastErr = `status ${res && res.status}`;
+            } catch(e){ lastErr = String(e); }
+          }
+          if (txt) {
+            setStoredText(txt);
+            if (statusEl) statusEl.textContent = `Loaded text (${txt.length} chars)`;
+          } else {
+            if (statusEl) statusEl.textContent = `Failed to load text`;
+            try { console.warn('Reader could not fetch book.txt. Tried URLs:', attempted, 'Last error:', lastErr); } catch {}
+          }
+        } else { if (statusEl) statusEl.textContent = 'Ready'; }
+      } catch {
+        if (statusEl) statusEl.textContent = 'Failed to load text';
+      }
+      updateInfo();
+    }
+
+    // wire reload button
+    // Removed reload button; always load at init
+
+    // initial load
+    loadBook(false);
+  })();
+
   // Keyboard shortcuts: list-mode + timers + input helpers
   (function(){
     const intent = document.getElementById('intent');
@@ -188,6 +662,7 @@
     const journalBox = document.getElementById('journalBox');
     const entriesBox = document.getElementById('journalEntries');
     const prayBtn = document.getElementById('prayBtn');
+    const readBtn = document.getElementById('readBtn');
     const overlay = document.getElementById('overlay');
     const overlayMsg = document.getElementById('overlayMsg');
     const saveBtn = document.getElementById('saveIntent');
@@ -246,6 +721,9 @@
     }
     document.addEventListener('keydown', (ev)=>{
       const key = ev.key.toLowerCase();
+      // If any modal is open, ignore global shortcuts
+      const anyModalOpen = !!document.querySelector('.modal.show');
+      if (anyModalOpen) return;
       const active = document.activeElement;
       // If typing: handle Escape to blur and Cmd+Enter to submit, otherwise pass through
       if (isTypingContext(active)) {
@@ -261,6 +739,7 @@
         if (key === 'escape') { ev.preventDefault(); exitListMode(); return; }
       }
       if (key === 'p') { ev.preventDefault(); if (prayBtn) prayBtn.click(); return; }
+      if (key === 'r') { ev.preventDefault(); if (readBtn) readBtn.click(); return; }
       if (key === 's') { ev.preventDefault(); if (exStart) exStart.click(); return; }
       if (key === 'j') { ev.preventDefault(); if (intent) intent.focus(); return; }
       if (key === 'l') { ev.preventDefault(); enterListMode(); return; }
