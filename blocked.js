@@ -1813,20 +1813,42 @@ function hideDeleteConfirmation() {
  * Confirm delete action
  */
 function confirmDelete() {
-  // Remove from groups
-  galleryGroups.forEach(group => {
-    group.items = group.items.filter(item => !selectedItems.has(item.id));
+  // Build full set of doodle ids to delete and collect selected groups
+  const idsToDelete = new Set();
+  const groupsToDelete = new Set();
+
+  selectedItems.forEach(id => {
+    if (typeof id === 'string' && id.startsWith('group-')) {
+      const groupIndex = parseInt(id.replace('group-', ''), 10);
+      if (!Number.isNaN(groupIndex) && galleryGroups[groupIndex]) {
+        groupsToDelete.add(groupIndex);
+        // Add all doodle ids within this group to deletion set
+        const group = galleryGroups[groupIndex];
+        group.items.forEach(item => idsToDelete.add(item.id));
+      }
+    } else {
+      idsToDelete.add(id);
+    }
   });
-  
-  // Remove empty groups
+
+  // Remove selected groups entirely
+  if (groupsToDelete.size > 0) {
+    galleryGroups = galleryGroups.filter((_, index) => !groupsToDelete.has(index));
+  }
+
+  // From remaining groups, remove any items whose ids are marked for deletion
+  galleryGroups.forEach(group => {
+    group.items = group.items.filter(item => !idsToDelete.has(item.id));
+  });
+
+  // Remove any groups that became empty after item deletions
   galleryGroups = galleryGroups.filter(group => group.items.length > 0);
-  
+
   // Remove from main doodles storage
-  const doodlesData = getItem('site-blocker:doodles');
-  if (doodlesData) {
-    const doodles = JSON.parse(doodlesData);
-    const filteredDoodles = doodles.filter(doodle => !selectedItems.has(doodle.id));
-    setItem('site-blocker:doodles', JSON.stringify(filteredDoodles));
+  const doodles = getItem('site-blocker:doodles', []);
+  if (Array.isArray(doodles)) {
+    const filteredDoodles = doodles.filter(doodle => !idsToDelete.has(doodle.id));
+    setItem('site-blocker:doodles', filteredDoodles);
   }
   
   saveGalleryGroups();
