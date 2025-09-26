@@ -41,7 +41,7 @@
 
         <div style="display: grid; gap: 12px;">
           <div class="row" style="margin: 0; gap: 12px;">
-            <div>
+            <div style="flex: 1;">
               <h3>What were you looking for?</h3>
               <textarea
                 id="intent"
@@ -52,22 +52,21 @@
                 id="intentSaved"
                 style="display: none; margin-top: 6px"
               >
-                Saved locally (see Journal below).
+                Saved locally (see Journal on the right).
               </div>
             </div>
-            
-          </div>
-          <div class="row" style="margin-top: 12px; gap: 12px;">
-            <div>
+            <div style="flex: 1;">
               <h3>Journal</h3>
               <div class="journal" id="journalBox">
                 <div id="journalEntries" class="muted">No entries yet.</div>
               </div>
             </div>
+            
           </div>
           
+          
           <!-- Activities Section -->
-          <div class="progress-section" style="margin-top: 20px;">
+          <div class="progress-section">
                 <h3>Activities</h3>
                 <div class="progress-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 12px;">
                   
