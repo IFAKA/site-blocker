@@ -9,6 +9,7 @@ import { deleteJournalEntry } from '../application/JournalService.js';
 import { clearJournalEntries as clearJournalEntriesUI } from './JournalController.js';
 import { handleMirrorKeydown } from './MirrorController.js';
 import { handleReadingKeydown } from './ReadingController.js';
+import { handleChineseModalKeydown } from './ChineseController.js';
 import { hideShortcutsModal, showShortcutsModal } from './ShortcutsController.js';
 import { handleModalKeydown, getShortcutsContext } from './ModalManager.js';
 
@@ -329,8 +330,9 @@ function handleGlobalKeydown(ev) {
       
       // Let Chinese modal handle its own keys
       if (topModal.id === 'chineseModal') {
-        // Chinese modal handles its own keys in handleChineseModalKeydown
-        return;
+        if (handleChineseModalKeydown(ev)) {
+          return; // Chinese handler processed the event
+        }
       }
       
       // Let reading modal handle its own keys

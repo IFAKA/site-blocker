@@ -4,95 +4,97 @@
  */
 
 import { 
-  startChineseSession, 
-  getCurrentSessionVocabulary, 
-  getCurrentSession,
-  startVoiceRecording,
-  stopVoiceRecording,
-  getSessionRecordings,
-  clearCurrentSession,
-  getVocabularyProgressForUser,
-  updateVocabularyProgressForUser,
-  getOverallLearningStatsForUser,
-  getVocabularyStats,
-  getAvailableDifficultyLevels,
-  getRemainingSessionTime,
-  shouldAutoCloseSession,
-  getLearningRecommendations
-} from '../application/ChineseService.js';
-import { 
-  getRandomVocabulary,
-  getNextVocabulary,
-  getPrevVocabulary
-} from '../domain/Chinese.js';
-import { 
-  initializeChineseAudio,
-  checkMicrophoneAccess,
-  speakChineseWord,
-  speakChineseSentence,
-  speakChineseWordOnly,
-  speakChineseSentenceOnly,
-  playRecordedAudio,
-  playCorrectPronunciationFeedback,
-  playIncorrectPronunciationFeedback,
-  playSessionCompleteSound,
-  isCurrentlyRecording,
-  getCurrentRecording,
-  clearCurrentRecording,
-  stopAllAudio,
-  isTTSSupported,
-  isRecordingSupported
-} from '../infrastructure/ChineseAudio.js';
-import { 
   getElementById, 
   updateTextContent, 
   showElement, 
   hideElement, 
   addEventListener, 
-  createElement, 
-  focusElement, 
   addClass, 
   removeClass 
 } from '../infrastructure/UI.js';
-import { KEYBOARD_SHORTCUTS } from '../shared/Constants.js';
 
 // Chinese learning state
-let chineseSession = null;
-let sessionTimer = null;
-let autoCloseTimer = null;
+let currentWord = null;
+let currentSession = null;
+let isRecording = false;
+let recordingStartTime = null;
+let sessionStartTime = null;
+let sessionDuration = 60; // 60 seconds
+let wordsLearned = 0;
+let correctAttempts = 0;
+let totalAttempts = 0;
+
+// Audio state
+let mediaRecorder = null;
+let audioChunks = [];
 let currentRecording = null;
-let isModalOpen = false;
-let isStartingRecording = false; // Prevent multiple recording starts
-let lastRecordingAttempt = 0; // Timestamp of last recording attempt
+let speechSynthesis = window.speechSynthesis;
+let voices = [];
+let selectedVoice = null;
+let currentAudio = null; // Reference to currently playing audio
+
+// Sample vocabulary data
+const vocabulary = [
+  {
+    word: '你好',
+    pinyin: 'nǐ hǎo',
+    meaning: 'Hello',
+    example: '你好，很高兴认识你。',
+    examplePinyin: 'nǐ hǎo, hěn gāo xìng rèn shi nǐ.',
+    exampleTranslation: 'Hello, nice to meet you.'
+  },
+  {
+    word: '谢谢',
+    pinyin: 'xiè xiè',
+    meaning: 'Thank you',
+    example: '谢谢你的帮助。',
+    examplePinyin: 'xiè xiè nǐ de bāng zhù.',
+    exampleTranslation: 'Thank you for your help.'
+  },
+  {
+    word: '再见',
+    pinyin: 'zài jiàn',
+    meaning: 'Goodbye',
+    example: '再见，明天见。',
+    examplePinyin: 'zài jiàn, míng tiān jiàn.',
+    exampleTranslation: 'Goodbye, see you tomorrow.'
+  },
+  {
+    word: '对不起',
+    pinyin: 'duì bù qǐ',
+    meaning: 'Sorry',
+    example: '对不起，我迟到了。',
+    examplePinyin: 'duì bù qǐ, wǒ chí dào le.',
+    exampleTranslation: 'Sorry, I am late.'
+  },
+  {
+    word: '没关系',
+    pinyin: 'méi guān xi',
+    meaning: 'It\'s okay',
+    example: '没关系，不用谢。',
+    examplePinyin: 'méi guān xi, bù yòng xiè.',
+    exampleTranslation: 'It\'s okay, no need to thank me.'
+  }
+];
 
 /**
- * Initialize Chinese learning functionality
+ * Initialize Chinese modal
  */
 export function initializeChinese() {
   setupChineseModal();
   setupChineseControls();
-  initializeChineseAudio();
+  initializeAudio();
 }
 
 /**
  * Setup Chinese modal
  */
 function setupChineseModal() {
-  const openBtn = getElementById('chineseBtn');
   const modal = getElementById('chineseModal');
   const closeBtn = getElementById('chineseClose');
   
-  if (openBtn) {
-    addEventListener(openBtn, 'click', showChineseModal);
-  }
-  
   if (closeBtn) {
     addEventListener(closeBtn, 'click', hideChineseModal);
-  }
-  
-  // Modal keydown handler attached to modal itself
-  if (modal) {
-    addEventListener(modal, 'keydown', handleChineseModalKeydown);
   }
 }
 
@@ -106,286 +108,239 @@ function setupChineseControls() {
   const nextBtn = getElementById('chineseNext');
   const prevBtn = getElementById('chinesePrev');
   
-  
   if (startBtn) {
-    addEventListener(startBtn, 'click', handleStartChineseSession);
+    addEventListener(startBtn, 'click', startNewSession);
   }
   
   if (recordBtn) {
-    console.log('Adding click listener to record button');
-    addEventListener(recordBtn, 'click', handleToggleRecording);
+    addEventListener(recordBtn, 'click', toggleRecording);
   }
   
   if (playBtn) {
-    console.log('Adding click listener to play button');
-    addEventListener(playBtn, 'click', handlePlayRecording);
+    addEventListener(playBtn, 'click', playRecording);
   }
   
   if (nextBtn) {
-    addEventListener(nextBtn, 'click', handleNextVocabulary);
+    addEventListener(nextBtn, 'click', nextWord);
   }
   
   if (prevBtn) {
-    addEventListener(prevBtn, 'click', handlePrevVocabulary);
+    addEventListener(prevBtn, 'click', prevWord);
+  }
+}
+
+/**
+ * Initialize audio capabilities
+ */
+async function initializeAudio() {
+  try {
+    // Load voices
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+      speechSynthesis.onvoiceschanged = () => {
+        voices = speechSynthesis.getVoices();
+        // Try to find a Chinese voice
+        selectedVoice = voices.find(voice => 
+          voice.lang.startsWith('zh') || 
+          voice.name.toLowerCase().includes('chinese') ||
+          voice.name.toLowerCase().includes('mandarin')
+        ) || voices[0];
+        
+        updateAudioStatus();
+      };
+    }
+    
+    // Check microphone access
+    await checkMicrophoneAccess();
+    updateAudioStatus();
+  } catch (error) {
+    console.error('Audio initialization failed:', error);
+    updateAudioStatus('Audio initialization failed');
+  }
+}
+
+/**
+ * Check microphone access
+ */
+async function checkMicrophoneAccess() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach(track => track.stop());
+    return true;
+  } catch (error) {
+    console.error('Microphone access denied:', error);
+    return false;
+  }
+}
+
+/**
+ * Stop all audio playback
+ */
+function stopAllAudio() {
+  // Stop any playing audio
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+    currentAudio = null;
+  }
+  
+  // Stop any TTS
+  speechSynthesis.cancel();
+}
+
+/**
+ * Update audio status
+ */
+function updateAudioStatus(message = null) {
+  const micStatus = getElementById('chineseMicrophoneStatus');
+  const ttsStatus = getElementById('chineseTTSStatus');
+  
+  if (micStatus) {
+    updateTextContent(micStatus, message || 'Microphone ready');
+  }
+  
+  if (ttsStatus) {
+    const voiceInfo = selectedVoice ? `${selectedVoice.name} (${selectedVoice.lang})` : 'TTS ready';
+    updateTextContent(ttsStatus, message || voiceInfo);
   }
 }
 
 /**
  * Show Chinese modal
  */
-export async function showChineseModal() {
+export function showChineseModal() {
   const modal = getElementById('chineseModal');
   if (!modal) return;
   
-  isModalOpen = true;
   addClass(modal, 'show');
   modal.removeAttribute('aria-hidden');
   
-  // Make modal focusable for keyboard events
-  modal.setAttribute('tabindex', '-1');
-  focusElement(modal);
-  
-  // Focus the close button for accessibility
-  const closeBtn = getElementById('chineseClose');
-  if (closeBtn) {
-    focusElement(closeBtn);
+  // Initialize with first word
+  if (!currentWord) {
+    currentWord = vocabulary[0];
+    updateWordDisplay();
   }
   
-  // Check microphone access
-  const hasMicrophone = await checkMicrophoneAccess();
-  updateMicrophoneStatus(hasMicrophone);
-  
-  // Check TTS support
-  const hasTTS = isTTSSupported();
-  updateTTSStatus(hasTTS);
-  
-  // Start a new session
-  await startNewChineseSession();
-  
-  // Update display
-  updateChineseDisplay();
+  updateStats();
+  updateTimer();
+  updateAudioStatus();
 }
 
 /**
  * Hide Chinese modal
  */
-function hideChineseModal() {
+export function hideChineseModal() {
   const modal = getElementById('chineseModal');
   if (modal) {
     removeClass(modal, 'show');
     modal.setAttribute('aria-hidden', 'true');
-    
-    // Remove focus from any focused elements inside the modal
-    const focusedElement = document.activeElement;
-    if (modal.contains(focusedElement)) {
-      focusedElement.blur();
-    }
   }
   
-  isModalOpen = false;
-  stopAllAudio();
-  clearCurrentSession();
-  clearSessionTimers();
-}
-
-/**
- * Reset Chinese modal state (exported for global access)
- */
-export function resetChineseModal() {
-  isModalOpen = false;
-  stopAllAudio();
-  clearCurrentSession();
-  clearSessionTimers();
-}
-
-/**
- * Start new Chinese session
- */
-async function startNewChineseSession() {
-  try {
-    chineseSession = startChineseSession();
-    updateChineseDisplay();
-    startSessionTimer();
-    
-    // Auto-close after 1 minute
-    autoCloseTimer = setTimeout(() => {
-      if (isModalOpen) {
-        hideChineseModal();
-      }
-    }, 60000);
-    
-  } catch (error) {
-    console.warn('Failed to start Chinese session:', error);
-    showChineseFeedback('Failed to start session');
+  // Stop any ongoing recording
+  if (isRecording) {
+    stopRecording();
   }
 }
 
 /**
- * Update Chinese display
+ * Start new session
  */
-function updateChineseDisplay() {
-  const vocabulary = getCurrentSessionVocabulary();
-  if (!vocabulary) return;
+function startNewSession() {
+  currentSession = {
+    startTime: Date.now(),
+    words: [...vocabulary],
+    currentIndex: 0
+  };
   
-  // Update vocabulary display
-  updateTextContent(getElementById('chineseWord'), vocabulary.word);
-  updateTextContent(getElementById('chinesePinyin'), vocabulary.pinyin);
-  updateTextContent(getElementById('chineseMeaning'), vocabulary.meaning);
-  updateTextContent(getElementById('chineseExample'), vocabulary.example);
-  updateTextContent(getElementById('chineseExamplePinyin'), vocabulary.examplePinyin);
-  updateTextContent(getElementById('chineseExampleTranslation'), vocabulary.exampleTranslation);
+  sessionStartTime = Date.now();
+  wordsLearned = 0;
+  correctAttempts = 0;
+  totalAttempts = 0;
   
-  // Update progress
-  updateProgressDisplay();
+  // Start with first word
+  currentWord = vocabulary[0];
+  updateWordDisplay();
+  updateStats();
+  updateTimer();
   
-  // Update recording status
-  updateRecordingStatus();
+  // Start session timer
+  startSessionTimer();
 }
 
 /**
- * Update progress display
+ * Update word display
  */
-function updateProgressDisplay() {
-  const stats = getOverallLearningStatsForUser();
-  const progressEl = getElementById('chineseProgress');
+function updateWordDisplay() {
+  if (!currentWord) return;
   
-  if (progressEl) {
-    updateTextContent(progressEl, `Words learned: ${stats.totalWords} | Accuracy: ${stats.accuracy}%`);
+  const wordEl = getElementById('chineseWord');
+  const pinyinEl = getElementById('chinesePinyin');
+  const meaningEl = getElementById('chineseMeaning');
+  const exampleEl = getElementById('chineseExample');
+  const examplePinyinEl = getElementById('chineseExamplePinyin');
+  const exampleTranslationEl = getElementById('chineseExampleTranslation');
+  
+  if (wordEl) updateTextContent(wordEl, currentWord.word);
+  if (pinyinEl) updateTextContent(pinyinEl, currentWord.pinyin);
+  if (meaningEl) updateTextContent(meaningEl, currentWord.meaning);
+  if (exampleEl) updateTextContent(exampleEl, currentWord.example);
+  if (examplePinyinEl) updateTextContent(examplePinyinEl, currentWord.examplePinyin);
+  if (exampleTranslationEl) updateTextContent(exampleTranslationEl, currentWord.exampleTranslation);
+}
+
+/**
+ * Next word
+ */
+function nextWord() {
+  if (!currentSession) {
+    startNewSession();
+    return;
   }
-}
-
-/**
- * Update microphone status
- */
-function updateMicrophoneStatus(hasAccess) {
-  const statusEl = getElementById('chineseMicrophoneStatus');
-  if (statusEl) {
-    updateTextContent(statusEl, hasAccess ? 'Microphone ready' : 'Microphone access denied');
-    addClass(statusEl, hasAccess ? 'success' : 'error');
-  }
-}
-
-/**
- * Update TTS status
- */
-function updateTTSStatus(isSupported) {
-  const statusEl = getElementById('chineseTTSStatus');
-  if (statusEl) {
-    updateTextContent(statusEl, isSupported ? 'TTS ready' : 'TTS not supported');
-    addClass(statusEl, isSupported ? 'success' : 'error');
-  }
-}
-
-/**
- * Update recording status
- */
-function updateRecordingStatus() {
-  const recordBtn = getElementById('chineseRecord');
-  const recordingStatus = getElementById('chineseRecordingStatus');
-  const wordSection = getElementById('chineseWord');
   
-  const recording = isCurrentlyRecording();
-  console.log('updateRecordingStatus called, isRecording:', recording);
-  
-  if (recording) {
-    if (recordBtn) {
-      updateTextContent(recordBtn, '🔴 Stop Recording');
-      addClass(recordBtn, 'recording');
-    }
-    if (recordingStatus) {
-      updateTextContent(recordingStatus, '🔴 Recording... Speak now!');
-      addClass(recordingStatus, 'recording');
-    }
-    if (wordSection) {
-      addClass(wordSection, 'recording-highlight');
-    }
+  const currentIndex = currentSession.currentIndex;
+  if (currentIndex < currentSession.words.length - 1) {
+    currentSession.currentIndex++;
+    currentWord = currentSession.words[currentSession.currentIndex];
+    updateWordDisplay();
   } else {
-    if (recordBtn) {
-      updateTextContent(recordBtn, '🎤 Start Recording');
-      removeClass(recordBtn, 'recording');
-    }
-    if (recordingStatus) {
-      updateTextContent(recordingStatus, 'Ready to record');
-      removeClass(recordingStatus, 'recording');
-    }
-    if (wordSection) {
-      removeClass(wordSection, 'recording-highlight');
-    }
+    // End of session
+    completeSession();
   }
 }
 
 /**
- * Start session timer
+ * Previous word
  */
-function startSessionTimer() {
-  if (sessionTimer) {
-    clearInterval(sessionTimer);
+function prevWord() {
+  if (!currentSession || currentSession.currentIndex <= 0) return;
+  
+  currentSession.currentIndex--;
+  currentWord = currentSession.words[currentSession.currentIndex];
+  updateWordDisplay();
+}
+
+/**
+ * Random word
+ */
+function randomWord() {
+  if (!currentSession) {
+    startNewSession();
+    return;
   }
   
-  sessionTimer = setInterval(() => {
-    if (!isModalOpen) {
-      clearInterval(sessionTimer);
-      return;
-    }
-    
-    const remaining = getRemainingSessionTime();
-    updateSessionTimer(remaining);
-    
-    if (remaining <= 0) {
-      hideChineseModal();
-    }
-  }, 1000);
+  const randomIndex = Math.floor(Math.random() * currentSession.words.length);
+  currentSession.currentIndex = randomIndex;
+  currentWord = currentSession.words[randomIndex];
+  updateWordDisplay();
 }
 
 /**
- * Update session timer display
+ * Toggle recording
  */
-function updateSessionTimer(remaining) {
-  const timerEl = getElementById('chineseTimer');
-  if (timerEl) {
-    updateTextContent(timerEl, `${remaining}s remaining`);
-    
-    if (remaining <= 10) {
-      addClass(timerEl, 'warning');
-    } else {
-      removeClass(timerEl, 'warning');
-    }
-  }
-}
-
-/**
- * Clear session timers
- */
-function clearSessionTimers() {
-  if (sessionTimer) {
-    clearInterval(sessionTimer);
-    sessionTimer = null;
-  }
-  if (autoCloseTimer) {
-    clearTimeout(autoCloseTimer);
-    autoCloseTimer = null;
-  }
-}
-
-/**
- * Handle start Chinese session
- */
-async function handleStartChineseSession() {
-  await startNewChineseSession();
-}
-
-/**
- * Handle toggle recording
- */
-async function handleToggleRecording() {
-  console.log('=== handleToggleRecording called ===');
-  console.log('isCurrentlyRecording():', isCurrentlyRecording());
-  if (isCurrentlyRecording()) {
-    console.log('Stopping recording...');
-    await stopRecording();
+function toggleRecording() {
+  if (isRecording) {
+    stopRecording();
   } else {
-    console.log('Starting recording...');
-    await startRecording();
+    startRecording();
   }
 }
 
@@ -393,370 +348,328 @@ async function handleToggleRecording() {
  * Start recording
  */
 async function startRecording() {
-  console.log('=== startRecording called ===');
-  if (isCurrentlyRecording()) {
-    console.log('Already recording, ignoring request');
-    isStartingRecording = false; // Reset flag
-    return;
-  }
+  if (isRecording) return;
+  
+  // Stop all audio before starting recording
+  stopAllAudio();
   
   try {
-    console.log('Testing microphone access...');
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      console.log('Microphone access granted!');
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    audioChunks = [];
+    
+    mediaRecorder.ondataavailable = (event) => {
+      audioChunks.push(event.data);
+    };
+    
+    mediaRecorder.onstop = () => {
+      const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+      currentRecording = URL.createObjectURL(audioBlob);
+      
+      const recordingStatus = getElementById('chineseRecordingStatus');
+      if (recordingStatus) {
+        updateTextContent(recordingStatus, 'Recording saved');
+      }
+      
+      // Stop all tracks
       stream.getTracks().forEach(track => track.stop());
-    } catch (micError) {
-      console.error('Microphone access denied:', micError);
-      showChineseFeedback('Microphone access denied');
-      isStartingRecording = false; // Reset flag
-      return;
+    };
+    
+    mediaRecorder.start();
+    isRecording = true;
+    recordingStartTime = Date.now();
+    
+    const recordBtn = getElementById('chineseRecord');
+    const recordingStatus = getElementById('chineseRecordingStatus');
+    
+    if (recordBtn) {
+      updateTextContent(recordBtn, '⏹️ Stop Recording');
+      addClass(recordBtn, 'recording');
     }
     
-    // Start the actual recording
-    const success = await startVoiceRecording();
-    console.log('startVoiceRecording result:', success);
-    
-    if (success) {
-      // Update UI after successful recording start
-      updateRecordingStatus();
-      showChineseFeedback('Recording started');
-      // Reset flag only after successful recording start
-      isStartingRecording = false;
-    } else {
-      // If recording failed, update UI
-      updateRecordingStatus();
-      showChineseFeedback('Recording failed');
-      // Reset flag after failed attempt
-      isStartingRecording = false;
+    if (recordingStatus) {
+      updateTextContent(recordingStatus, 'Recording...');
     }
+    
+    console.log('Started recording for word:', currentWord?.word);
   } catch (error) {
-    console.warn('Failed to start recording:', error);
-    updateRecordingStatus();
-    showChineseFeedback('Recording failed');
-    isStartingRecording = false; // Reset flag
+    console.error('Failed to start recording:', error);
+    updateAudioStatus('Microphone access denied');
   }
 }
 
 /**
  * Stop recording
  */
-async function stopRecording() {
-  console.log('=== stopRecording called ===');
-  if (!isCurrentlyRecording()) {
-    console.log('Not recording, ignoring request');
+function stopRecording() {
+  if (!isRecording || !mediaRecorder) return;
+  
+  mediaRecorder.stop();
+  isRecording = false;
+  
+  const recordBtn = getElementById('chineseRecord');
+  const recordingStatus = getElementById('chineseRecordingStatus');
+  
+  if (recordBtn) {
+    updateTextContent(recordBtn, '🎤 Start Recording');
+    removeClass(recordBtn, 'recording');
+  }
+  
+  if (recordingStatus) {
+    const recordingDuration = Date.now() - recordingStartTime;
+    updateTextContent(recordingStatus, `Recorded for ${Math.round(recordingDuration / 1000)}s`);
+  }
+  
+  console.log('Stopped recording for word:', currentWord?.word);
+}
+
+/**
+ * Play recording
+ */
+function playRecording() {
+  if (!currentRecording) {
+    const recordingStatus = getElementById('chineseRecordingStatus');
+    if (recordingStatus) {
+      updateTextContent(recordingStatus, 'No recording to play');
+    }
     return;
   }
   
-  try {
-    // Stop the actual recording
-    const recording = await stopVoiceRecording();
-    
-    // Update UI after stopping
-    updateRecordingStatus();
-    showChineseFeedback('Recording stopped');
-    
-    if (recording) {
-      currentRecording = recording;
-      showChineseFeedback('Recording completed');
-      
-      // Auto-play after 2 seconds
-      setTimeout(async () => {
-        await playRecordedAudio(recording.url);
-      }, 2000);
-    } else {
-      showChineseFeedback('Failed to stop recording');
-    }
-  } catch (error) {
-    console.warn('Failed to stop recording:', error);
-    updateRecordingStatus();
-    showChineseFeedback('Recording failed');
-  }
-}
-
-/**
- * Handle play recording
- */
-async function handlePlayRecording() {
-  console.log('handlePlayRecording called, currentRecording:', !!currentRecording);
-  if (currentRecording) {
-    const playBtn = getElementById('chinesePlay');
-    if (playBtn) {
-      updateTextContent(playBtn, '🔊 Playing...');
-      addClass(playBtn, 'playing');
-    }
-    
-    showPlaybackFeedback();
-    await playRecordedAudio(currentRecording.url);
-    hidePlaybackFeedback();
-    
-    if (playBtn) {
-      updateTextContent(playBtn, '🔊 Play Recording');
-      removeClass(playBtn, 'playing');
-    }
-  } else {
-    showChineseFeedback('No recording to play');
-  }
-}
-
-/**
- * Handle replay recording
- */
-async function handleReplayRecording() {
-  console.log('handleReplayRecording called, currentRecording:', !!currentRecording);
-  if (currentRecording) {
-    const playBtn = getElementById('chinesePlay');
-    if (playBtn) {
-      updateTextContent(playBtn, '🔊 Playing...');
-      addClass(playBtn, 'playing');
-    }
-    
-    showPlaybackFeedback();
-    await playRecordedAudio(currentRecording.url);
-    hidePlaybackFeedback();
-    
-    if (playBtn) {
-      updateTextContent(playBtn, '🔊 Play Recording');
-      removeClass(playBtn, 'playing');
-    }
-  } else {
-    showChineseFeedback('No recording to replay');
-  }
-}
-
-/**
- * Handle random word
- */
-async function handleRandomWord() {
-  if (!chineseSession) {
-    await startNewChineseSession();
+  console.log('Playing recording for word:', currentWord?.word);
+  
+  // Stop any currently playing audio first
+  stopAllAudio();
+  
+  const audio = new Audio(currentRecording);
+  currentAudio = audio; // Store reference
+  const recordingStatus = getElementById('chineseRecordingStatus');
+  
+  if (recordingStatus) {
+    updateTextContent(recordingStatus, 'Playing recording...');
   }
   
-  const randomVocabulary = getRandomVocabulary();
-  if (randomVocabulary) {
-    chineseSession.currentWordId = randomVocabulary.id;
-    updateChineseDisplay();
-    showChineseFeedback('Random word selected');
+  audio.onended = () => {
+    currentAudio = null; // Clear reference when done
+    if (recordingStatus) {
+      updateTextContent(recordingStatus, 'Recording played');
+    }
+  };
+  
+  audio.onerror = () => {
+    currentAudio = null; // Clear reference on error
+    if (recordingStatus) {
+      updateTextContent(recordingStatus, 'Error playing recording');
+    }
+  };
+  
+  audio.play();
+}
+
+/**
+ * Speak current word
+ */
+function speakCurrentWord() {
+  if (!currentWord) return;
+  
+  console.log('Speaking word:', currentWord.word);
+  
+  // Stop any currently playing audio first
+  stopAllAudio();
+  
+  const utterance = new SpeechSynthesisUtterance(currentWord.word);
+  if (selectedVoice) {
+    utterance.voice = selectedVoice;
+  }
+  utterance.lang = 'zh-CN';
+  utterance.rate = 0.8;
+  utterance.pitch = 1;
+  
+  const recordingStatus = getElementById('chineseRecordingStatus');
+  if (recordingStatus) {
+    updateTextContent(recordingStatus, 'Speaking word...');
+  }
+  
+  utterance.onend = () => {
+    if (recordingStatus) {
+      updateTextContent(recordingStatus, 'Word spoken');
+    }
+  };
+  
+  utterance.onerror = () => {
+    if (recordingStatus) {
+      updateTextContent(recordingStatus, 'TTS error');
+    }
+  };
+  
+  speechSynthesis.speak(utterance);
+}
+
+/**
+ * Speak current sentence
+ */
+function speakCurrentSentence() {
+  if (!currentWord) return;
+  
+  console.log('Speaking sentence:', currentWord.example);
+  
+  // Stop any currently playing audio first
+  stopAllAudio();
+  
+  const utterance = new SpeechSynthesisUtterance(currentWord.example);
+  if (selectedVoice) {
+    utterance.voice = selectedVoice;
+  }
+  utterance.lang = 'zh-CN';
+  utterance.rate = 0.7;
+  utterance.pitch = 1;
+  
+  const recordingStatus = getElementById('chineseRecordingStatus');
+  if (recordingStatus) {
+    updateTextContent(recordingStatus, 'Speaking sentence...');
+  }
+  
+  utterance.onend = () => {
+    if (recordingStatus) {
+      updateTextContent(recordingStatus, 'Sentence spoken');
+    }
+  };
+  
+  utterance.onerror = () => {
+    if (recordingStatus) {
+      updateTextContent(recordingStatus, 'TTS error');
+    }
+  };
+  
+  speechSynthesis.speak(utterance);
+}
+
+/**
+ * Update stats
+ */
+function updateStats() {
+  const progressEl = getElementById('chineseProgress');
+  if (progressEl) {
+    const accuracy = totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) : 0;
+    updateTextContent(progressEl, `Words learned: ${wordsLearned} | Accuracy: ${accuracy}%`);
   }
 }
 
 /**
- * Handle next vocabulary
+ * Update timer
  */
-async function handleNextVocabulary() {
-  if (!chineseSession) {
-    await startNewChineseSession();
-    return;
-  }
+function updateTimer() {
+  const timerEl = getElementById('chineseTimer');
+  if (!timerEl || !sessionStartTime) return;
   
-  const nextVocabulary = getNextVocabulary(chineseSession.currentWordId);
-  if (nextVocabulary) {
-    chineseSession.currentWordId = nextVocabulary.id;
-    updateChineseDisplay();
-    showChineseFeedback('Next word');
-  } else {
-    showChineseFeedback('No more words');
+  const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+  const remaining = Math.max(0, sessionDuration - elapsed);
+  
+  updateTextContent(timerEl, `${remaining}s remaining`);
+  
+  if (remaining === 0) {
+    completeSession();
   }
 }
 
 /**
- * Handle previous vocabulary
+ * Start session timer
  */
-async function handlePrevVocabulary() {
-  if (!chineseSession) {
-    await startNewChineseSession();
-    return;
+function startSessionTimer() {
+  const timerInterval = setInterval(() => {
+    if (!currentSession) {
+      clearInterval(timerInterval);
+      return;
+    }
+    
+    updateTimer();
+  }, 1000);
+}
+
+/**
+ * Complete session
+ */
+function completeSession() {
+  console.log('Session completed!');
+  
+  const recordingStatus = getElementById('chineseRecordingStatus');
+  if (recordingStatus) {
+    updateTextContent(recordingStatus, 'Session completed!');
   }
   
-  const prevVocabulary = getPrevVocabulary(chineseSession.currentWordId);
-  if (prevVocabulary) {
-    chineseSession.currentWordId = prevVocabulary.id;
-    updateChineseDisplay();
-    showChineseFeedback('Previous word');
-  } else {
-    showChineseFeedback('No previous words');
-  }
+  // Reset session
+  currentSession = null;
+  sessionStartTime = null;
 }
 
 /**
  * Handle Chinese modal keydown events
  */
-function handleChineseModalKeydown(ev) {
+export function handleChineseModalKeydown(ev) {
   const modal = getElementById('chineseModal');
-  if (!modal || !modal.classList.contains('show')) return;
+  if (!modal || !modal.classList.contains('show')) return false;
   
   const key = (ev.key || '').toLowerCase();
-  
   
   // If typing in an input inside modal, don't hijack
   const t = ev.target;
   const tag = (t && t.tagName || '').toLowerCase();
-  if (tag === 'input' || tag === 'textarea' || (t && t.isContentEditable)) return;
+  if (tag === 'input' || tag === 'textarea' || (t && t.isContentEditable)) return false;
   
   // Spacebar to toggle recording
-  if (ev.key === ' ') {
+  if (ev.key === ' ' || ev.key === 'Space') {
     ev.preventDefault();
-    console.log('Spacebar pressed in Chinese modal');
-    handleToggleRecording();
-    return;
-  }
-  
-  // A to replay last recording
-  if (key === 'a') {
-    ev.preventDefault();
-    handleReplayRecording();
-    return;
+    toggleRecording();
+    return true;
   }
   
   // W to speak the word
   if (key === 'w') {
     ev.preventDefault();
     speakCurrentWord();
-    return;
+    return true;
   }
   
-  // S to speak the sentence only
+  // S to speak the sentence
   if (key === 's') {
     ev.preventDefault();
-    speakCurrentSentenceOnly();
-    return;
+    speakCurrentSentence();
+    return true;
   }
   
   // R for random word
   if (key === 'r') {
     ev.preventDefault();
-    handleRandomWord();
-    return;
+    randomWord();
+    return true;
   }
   
   // N for next word
   if (key === 'n') {
     ev.preventDefault();
-    handleNextVocabulary();
-    return;
+    nextWord();
+    return true;
   }
   
   // P for previous word
   if (key === 'p') {
     ev.preventDefault();
-    handlePrevVocabulary();
-    return;
+    prevWord();
+    return true;
   }
   
-}
-
-
-/**
- * Speak current word
- */
-async function speakCurrentWord() {
-  const vocabulary = getCurrentSessionVocabulary();
-  if (!vocabulary) return;
-  
-  try {
-    showSpeakingFeedback('Speaking word...');
-    await speakChineseWordOnly(vocabulary.word);
-    hideSpeakingFeedback();
-  } catch (error) {
-    console.warn('Failed to speak word:', error);
-    showChineseFeedback('Failed to speak word');
-    hideSpeakingFeedback();
-  }
-}
-
-/**
- * Speak current sentence only
- */
-async function speakCurrentSentenceOnly() {
-  const vocabulary = getCurrentSessionVocabulary();
-  if (!vocabulary) return;
-  
-  try {
-    showSpeakingFeedback('Speaking sentence...');
-    await speakChineseSentenceOnly(vocabulary.example);
-    hideSpeakingFeedback();
-  } catch (error) {
-    console.warn('Failed to speak sentence:', error);
-    showChineseFeedback('Failed to speak sentence');
-    hideSpeakingFeedback();
-  }
-}
-
-/**
- * Speak current sentence
- */
-async function speakCurrentSentence() {
-  const vocabulary = getCurrentSessionVocabulary();
-  if (!vocabulary) return;
-  
-  try {
-    showSpeakingFeedback('Speaking sentence...');
-    await speakChineseSentenceOnly(vocabulary.example);
-    hideSpeakingFeedback();
-  } catch (error) {
-    console.warn('Failed to speak sentence:', error);
-    showChineseFeedback('Failed to speak sentence');
-    hideSpeakingFeedback();
-  }
-}
-
-/**
- * Show Chinese feedback message
- */
-function showChineseFeedback(message) {
-  // Remove any existing feedback
-  const existingFeedback = getElementById('chineseFeedback');
-  if (existingFeedback) {
-    existingFeedback.remove();
+  // A to play recording
+  if (key === 'a') {
+    ev.preventDefault();
+    playRecording();
+    return true;
   }
   
-  // Create new feedback element
-  const feedbackEl = createElement('div', {
-    id: 'chineseFeedback',
-    className: 'chinese-feedback',
-    style: {
-      position: 'fixed',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      background: '#065f46',
-      color: '#ffffff',
-      padding: '12px 20px',
-      borderRadius: '8px',
-      fontWeight: '600',
-      zIndex: '10001',
-      opacity: '0',
-      transition: 'opacity 0.3s ease'
-    }
-  });
-  
-  updateTextContent(feedbackEl, message);
-  
-  // Add to modal
-  const modal = getElementById('chineseModal');
-  if (modal) {
-    modal.appendChild(feedbackEl);
-    
-    // Show feedback with slight delay
-    setTimeout(() => {
-      addClass(feedbackEl, 'show');
-    }, 10);
-    
-    // Remove after animation
-    setTimeout(() => {
-      removeClass(feedbackEl, 'show');
-      setTimeout(() => {
-        if (feedbackEl.parentNode) {
-          feedbackEl.remove();
-        }
-      }, 300);
-    }, 1500);
-  }
+  // Return false for unhandled keys
+  return false;
 }
 
 /**
  * Get Chinese modal element
- * @returns {HTMLElement|null} Modal element
  */
 export function getChineseModal() {
   return getElementById('chineseModal');
@@ -764,72 +677,35 @@ export function getChineseModal() {
 
 /**
  * Check if Chinese modal is open
- * @returns {boolean} True if modal is open
  */
 export function isChineseModalOpen() {
-  return isModalOpen;
+  const modal = getChineseModal();
+  return modal && modal.classList.contains('show');
 }
 
 /**
- * Show speaking feedback
+ * Reset Chinese modal
  */
-function showSpeakingFeedback(message) {
-  const wordSection = getElementById('chineseWord');
-  const pinyinSection = getElementById('chinesePinyin');
+export function resetChineseModal() {
+  currentWord = null;
+  currentSession = null;
+  isRecording = false;
+  recordingStartTime = null;
+  sessionStartTime = null;
+  wordsLearned = 0;
+  correctAttempts = 0;
+  totalAttempts = 0;
   
-  if (wordSection) {
-    addClass(wordSection, 'speaking-highlight');
-  }
-  if (pinyinSection) {
-    addClass(pinyinSection, 'speaking-highlight');
-  }
-  
-  showChineseFeedback(`🔊 ${message}`);
-}
-
-/**
- * Hide speaking feedback
- */
-function hideSpeakingFeedback() {
-  const wordSection = getElementById('chineseWord');
-  const pinyinSection = getElementById('chinesePinyin');
-  
-  if (wordSection) {
-    removeClass(wordSection, 'speaking-highlight');
-  }
-  if (pinyinSection) {
-    removeClass(pinyinSection, 'speaking-highlight');
-  }
-}
-
-/**
- * Show playback feedback
- */
-function showPlaybackFeedback() {
-  const wordSection = getElementById('chineseWord');
-  const pinyinSection = getElementById('chinesePinyin');
-  
-  if (wordSection) {
-    addClass(wordSection, 'playback-highlight');
-  }
-  if (pinyinSection) {
-    addClass(pinyinSection, 'playback-highlight');
+  // Clean up audio resources
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
   }
   
-  showChineseFeedback('🔊 Playing your recording...');
-}
-
-/**
- * Hide playback feedback
- */
-function hidePlaybackFeedback() {
-  const wordSection = getElementById('chineseWord');
-  const pinyinSection = getElementById('chinesePinyin');
+  if (currentRecording) {
+    URL.revokeObjectURL(currentRecording);
+    currentRecording = null;
+  }
   
-  if (wordSection) {
-    removeClass(wordSection, 'playback-highlight');
-  }
-  if (pinyinSection) {
-    removeClass(pinyinSection, 'playback-highlight');
-  }
+  // Stop all audio
+  stopAllAudio();
 }
