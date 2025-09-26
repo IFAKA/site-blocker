@@ -14,6 +14,7 @@ export const STORAGE_KEYS = {
   READER_POINTER: 'site-blocker:reader:pointer',
   READER_WPM: 'site-blocker:reader:wpm',
   CHINESE_PROGRESS: 'site-blocker:chinese:progress',
+  CHINESE_PREFERRED_VOICE: 'site-blocker:chinese:preferred-voice',
   THEME_MODE: 'site-blocker:theme:mode'
 };
 

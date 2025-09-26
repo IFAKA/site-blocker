@@ -34,6 +34,12 @@ import {
   playEyeHealthComplete,
   playBreathingCue
 } from '../infrastructure/Audio.js';
+import {
+  initializeChineseAudio,
+  speakChineseText,
+  isTTSSupported as isChineseTTSSupported
+} from '../infrastructure/ChineseAudio.js';
+import { speakEnglishText, isTTSSupported as isGenericTTSSupported } from '../infrastructure/TTS.js';
 
 /**
  * Initialize eye health functionality
@@ -43,6 +49,8 @@ export function initializeEyeHealth() {
   setupEyeHealthControls();
   setupEyeHealthModal();
   setupEyeHealthKeyboardShortcuts();
+  // Best-effort initialize audio/TTS (may require user gesture in some browsers)
+  try { initializeChineseAudio(); } catch (e) { /* no-op */ }
 }
 
 /**
@@ -207,6 +215,10 @@ function startEyeHealth() {
   
   updateStartButton('Starting...');
   playEyeHealthFocusStart();
+  if (isGenericTTSSupported()) {
+    // Intro prompt in English
+    speakEnglishText('Starting one minute eye routine. Get ready.');
+  }
   
   // Start the 1-minute routine with 3-second accommodation
   eyeHealthTimer = setInterval(() => {
@@ -240,7 +252,10 @@ function startEyeHealth() {
 function handleAccommodationPhase() {
   const remaining = 3 - eyeHealthSeconds;
   updateStartButton(`Get ready... ${remaining}s`);
-  updateInstruction('Get ready for eye health routine');
+  updateInstruction('Get ready for the eye routine');
+  if (eyeHealthSeconds === 1 && isGenericTTSSupported()) {
+    speakEnglishText('Sit up straight. Relax your neck and shoulders.');
+  }
 }
 
 /**
@@ -251,7 +266,10 @@ function handleFocusPhase() {
   updateStartButton(`Focus on distance (${remaining}s)`);
   
   if (eyeHealthSeconds === 4) {
-    updateInstruction('Look at something 20+ feet away and focus');
+    updateInstruction('Look far away. Keep your eyes still.');
+    if (isGenericTTSSupported()) {
+      speakEnglishText('Look far into the distance and hold your gaze.');
+    }
   }
 }
 
@@ -261,7 +279,10 @@ function handleFocusPhase() {
 function handleMovementPhase() {
   if (eyeHealthSeconds === 19) {
     playEyeHealthMovementStart();
-    updateInstruction('Move eyes left, right, up, down in slow circles');
+    updateInstruction('Move eyes: left, right, up, down. Slow circles.');
+    if (isGenericTTSSupported()) {
+      speakEnglishText('Move your eyes left, right, up and down, then make slow circles.');
+    }
   }
   
   const remaining = 33 - eyeHealthSeconds;
@@ -274,7 +295,10 @@ function handleMovementPhase() {
 function handleBreathingPhase() {
   if (eyeHealthSeconds === 34) {
     playEyeHealthBreathingStart();
-    updateInstruction('Breathe in 4s, hold 4s, out 4s, hold 4s');
+    updateInstruction('Box breathing');
+    if (isGenericTTSSupported()) {
+      speakEnglishText('Box breathing. Breathe in for four seconds, hold for four, out for four, and hold for four.');
+    }
   }
   
   const remaining = 48 - eyeHealthSeconds;
@@ -282,6 +306,16 @@ function handleBreathingPhase() {
   
   updateStartButton(`Box breathing (${remaining}s)`);
   updateBreathingVisual(breathingInfo);
+
+  // Reflect current phase in the main instruction with countdown
+  const instructionPhaseText = {
+    inhale: 'Breathe in',
+    hold1: 'Hold',
+    exhale: 'Breathe out',
+    hold2: 'Hold'
+  };
+  const phaseLabel = instructionPhaseText[breathingInfo.currentPhase] || 'Breathe';
+  updateInstruction(`${phaseLabel} (${breathingInfo.phaseRemaining}s)`);
 }
 
 /**
@@ -290,7 +324,10 @@ function handleBreathingPhase() {
 function handleRelaxationPhase() {
   if (eyeHealthSeconds === 49) {
     playEyeHealthRelaxationStart();
-    updateInstruction('Gentle blinking and eye relaxation');
+    updateInstruction('Blink gently. Relax your eyes.');
+    if (isGenericTTSSupported()) {
+      speakEnglishText('Blink gently and relax the muscles around your eyes.');
+    }
   }
   
   const remaining = 63 - eyeHealthSeconds;
@@ -308,6 +345,9 @@ function completeEyeHealth() {
   updateStartButton('Start routine');
   updateInstruction('Eye health routine complete!');
   playEyeHealthComplete();
+  if (isGenericTTSSupported()) {
+    speakEnglishText('All done. Great job. Remember to rest your eyes often.');
+  }
   
   // Move to next phase for next time
   moveToNextEyeHealthPhase();
@@ -315,6 +355,9 @@ function completeEyeHealth() {
   
   // End session
   endEyeHealthSession();
+
+  // Auto-close the modal after completion
+  hideEyeHealthModal();
 }
 
 /**
@@ -327,8 +370,11 @@ function cancelEyeHealth() {
   }
   eyeHealthRunning = false;
   updateStartButton('Start routine');
-  updateInstruction('Eye health routine cancelled');
+  updateInstruction('Routine cancelled.');
   hideBreathingVisual();
+  if (isGenericTTSSupported()) {
+    speakEnglishText('Routine cancelled.');
+  }
 }
 
 /**

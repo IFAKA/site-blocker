@@ -359,6 +359,15 @@ textarea:focus::before {
 .modal .doodle-feedback.show {
   opacity: 1;
 }
+/* Theme variants for doodle-feedback */
+.modal .doodle-feedback.light {
+  background: rgba(0, 0, 0, 0.7);
+  
+}
+.modal .doodle-feedback.dark {
+  background: rgba(255, 255, 255, 0.12);
+  
+}
 /* Eye Health modal */
 .modal .eye-health-content {
   padding-top: 16px;

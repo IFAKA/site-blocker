@@ -14,6 +14,8 @@ import {
   createAudioContext,
   resumeAudioContext
 } from './Audio.js';
+import { getItem, setItem } from './Storage.js';
+import { STORAGE_KEYS } from '../shared/Constants.js';
 
 // Audio recording state
 let mediaRecorder = null;
@@ -35,6 +37,10 @@ export async function initializeChineseAudio() {
     }
     
     await resumeAudioContext(audioContext);
+    // Warm up voices list so voiceschanged fires where needed
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.getVoices();
+    }
     return true;
   } catch (error) {
     console.warn('Failed to initialize Chinese audio:', error);
@@ -212,18 +218,88 @@ export async function speakChineseText(text, language = 'zh-CN', rate = 0.8, pit
       utterance.lang = language;
       utterance.rate = rate;
       utterance.pitch = pitch;
-      utterance.volume = 0.8;
+      utterance.volume = 0.9;
+      
+      // Prefer the best available Chinese voice if present
+      try {
+        const trySetBestVoice = () => {
+          const voices = window.speechSynthesis.getVoices();
+          if (voices && voices.length > 0) {
+            // Preferred user selection from storage
+            const preferred = getItem(STORAGE_KEYS.CHINESE_PREFERRED_VOICE, null);
+            if (preferred && preferred.name) {
+              const match = voices.find(v => v.name === preferred.name || (preferred.lang && v.lang === preferred.lang));
+              if (match) {
+                utterance.voice = match;
+                if (match.lang) utterance.lang = match.lang;
+                window.speechSynthesis.speak(utterance);
+                return;
+              }
+            }
+            
+            // Prefer enhanced Mandarin voices if available
+            const preferredNames = [
+              'Ting-Ting', 'Mei-Jia', 'Liang', 'Tian-Tian', // macOS
+              'Google 普通话（中国大陆）', 'Google 粤語（香港）', 'Google 國語（臺灣）', // Chrome Google voices
+              'Microsoft Xiaoxiao Online (Natural) - Chinese (Mainland)', // Edge
+            ];
+            const chineseVoices = voices.filter(v => 
+              (v.lang && (v.lang.toLowerCase().startsWith('zh') || v.lang.toLowerCase().includes('cmn'))) ||
+              (v.name && (/chinese|普通话|國語|粤|mandarin|putonghua/i).test(v.name))
+            );
+            const byName = preferredNames
+              .map(name => chineseVoices.find(v => v.name === name))
+              .find(Boolean);
+            const selected = byName || chineseVoices[0] || null;
+            if (selected) {
+              utterance.voice = selected;
+              // Align language with selected voice if present
+              if (selected.lang) utterance.lang = selected.lang;
+            }
+            window.speechSynthesis.speak(utterance);
+          } else {
+            // Voices not loaded yet; speak anyway with lang fallback
+            window.speechSynthesis.speak(utterance);
+          }
+        };
+        // If voices not ready, wait for the event once
+        if (window.speechSynthesis.getVoices().length === 0) {
+          const onVoices = () => {
+            window.speechSynthesis.removeEventListener('voiceschanged', onVoices);
+            trySetBestVoice();
+          };
+          window.speechSynthesis.addEventListener('voiceschanged', onVoices);
+          // Also set a short fallback timeout in case event never fires
+          setTimeout(() => {
+            try {
+              window.speechSynthesis.removeEventListener('voiceschanged', onVoices);
+            } catch {}
+            trySetBestVoice();
+          }, 250);
+        } else {
+          trySetBestVoice();
+        }
+      } catch {
+        window.speechSynthesis.speak(utterance);
+      }
       
       utterance.onend = () => resolve(true);
       utterance.onerror = () => resolve(false);
-      
-      window.speechSynthesis.speak(utterance);
     });
   } catch (error) {
     console.warn('Failed to speak text:', error);
     return false;
   }
 }
+
+/**
+ * Speak English text using Text-to-Speech
+ * @param {string} text - Text to speak
+ * @param {string} language - Language code (default: 'en-US')
+ * @param {number} rate - Speech rate (default: 1.0)
+ * @param {number} pitch - Speech pitch (default: 1.0)
+ * @returns {Promise<boolean>} Success status
+ */
 
 /**
  * Speak Chinese word with pronunciation

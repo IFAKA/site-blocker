@@ -88,6 +88,20 @@ let drawingState = null;
 let spacePressed = false;
 let mouseX = 0;
 let mouseY = 0;
+// Zoom acceleration state for held keys
+let zoomAccel = { key: null, count: 0, lastTime: 0 };
+
+/**
+ * Apply CSS transform to canvas based on current zoom/pan
+ */
+function applyCanvasTransform() {
+  const canvas = getElementById('doodleCanvas');
+  if (!canvas || !drawingState) return;
+  canvas.style.transformOrigin = '0 0';
+  canvas.style.willChange = 'transform';
+  const tz = `translate(${drawingState.panX}px, ${drawingState.panY}px) scale(${drawingState.zoom})`;
+  canvas.style.transform = tz;
+}
 
 /**
  * Show drawing modal
@@ -129,6 +143,10 @@ export function showDrawingModal() {
   drawingState.tool = 'pen';
   
   setupCanvasEvents();
+  // Mark that CSS transforms will be used for zoom/pan and sync
+  if (drawingState) drawingState.useCssTransform = true;
+  // Ensure CSS transform matches initial state
+  applyCanvasTransform();
   
   // Auto-hide prompt after reading time
   setupPromptAutoHide();
@@ -146,6 +164,12 @@ export function hideDrawingModal() {
   }
   
   // Reset drawing state
+  const canvas = getElementById('doodleCanvas');
+  if (canvas) {
+    canvas.style.transform = '';
+    canvas.style.transformOrigin = '';
+    canvas.style.willChange = '';
+  }
   drawingState = null;
   spacePressed = false;
   mouseX = 0;
@@ -299,6 +323,12 @@ function setupCanvasEvents() {
         drawingState = saveCanvasState(drawingState);
       }
     }
+
+    // Reset zoom acceleration when releasing zoom keys
+    const k = e.key.toLowerCase();
+    if (k === '-' || k === '_' || k === '=' || k === '+') {
+      zoomAccel = { key: null, count: 0, lastTime: 0 };
+    }
   });
 }
 
@@ -312,28 +342,56 @@ function handleModalKeydown(e) {
   
   const key = e.key.toLowerCase();
   
+  // Helper to compute accelerated step for held keys
+  const computeAccelStep = (base) => {
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    if (zoomAccel.key === key && e.repeat) {
+      // If repeats are close in time, ramp up; otherwise reset
+      const withinBurst = (now - zoomAccel.lastTime) < 220;
+      zoomAccel.count = withinBurst ? (zoomAccel.count + 1) : 1;
+    } else if (!e.repeat) {
+      zoomAccel.key = key;
+      zoomAccel.count = 0;
+    } else {
+      zoomAccel.key = key;
+      zoomAccel.count = 1;
+    }
+    zoomAccel.lastTime = now;
+    // Exponential-ish ramp with cap
+    const factor = Math.min(4, Math.pow(1.12, zoomAccel.count));
+    return base * factor;
+  };
+  
   // Zoom controls
   if ((key === '-' || key === '_') && !e.metaKey && !e.ctrlKey) {
     e.preventDefault();
-    drawingState = adjustCanvasZoom(drawingState, -CANVAS_CONFIG.ZOOM_STEP, mouseX, mouseY);
+    const step = computeAccelStep(CANVAS_CONFIG.ZOOM_STEP);
+    drawingState = adjustCanvasZoom(drawingState, -step, mouseX, mouseY);
+    applyCanvasTransform();
     return;
   }
   
   if ((key === '=' || key === '+') && !e.metaKey && !e.ctrlKey) {
     e.preventDefault();
-    drawingState = adjustCanvasZoom(drawingState, CANVAS_CONFIG.ZOOM_STEP, mouseX, mouseY);
+    const step = computeAccelStep(CANVAS_CONFIG.ZOOM_STEP);
+    drawingState = adjustCanvasZoom(drawingState, step, mouseX, mouseY);
+    applyCanvasTransform();
     return;
   }
   
   if ((key === '-' || key === '_') && (e.metaKey || e.ctrlKey)) {
     e.preventDefault();
-    drawingState = adjustCanvasZoom(drawingState, -CANVAS_CONFIG.ZOOM_STEP_FAST, mouseX, mouseY);
+    const step = computeAccelStep(CANVAS_CONFIG.ZOOM_STEP_FAST);
+    drawingState = adjustCanvasZoom(drawingState, -step, mouseX, mouseY);
+    applyCanvasTransform();
     return;
   }
   
   if ((key === '=' || key === '+') && (e.metaKey || e.ctrlKey)) {
     e.preventDefault();
-    drawingState = adjustCanvasZoom(drawingState, CANVAS_CONFIG.ZOOM_STEP_FAST, mouseX, mouseY);
+    const step = computeAccelStep(CANVAS_CONFIG.ZOOM_STEP_FAST);
+    drawingState = adjustCanvasZoom(drawingState, step, mouseX, mouseY);
+    applyCanvasTransform();
     return;
   }
   
@@ -580,8 +638,58 @@ function showFeedback(message) {
     id: 'doodleFeedback',
     className: 'doodle-feedback'
   });
-  
-  updateTextContent(feedbackEl, message);
+
+  // Apply theme modifier class based on current doodle canvas theme
+  try {
+    const dark = !!(drawingState && drawingState.themeIsDark);
+    if (dark) {
+      addClass(feedbackEl, 'dark');
+    } else {
+      addClass(feedbackEl, 'light');
+    }
+  } catch {}
+
+  // If feedback corresponds to a shape tool selection, render outline-only icon
+  const lower = (message || '').toLowerCase();
+  const isPen = lower.includes('pen tool');
+  const isRectangle = lower.includes('rectangle tool');
+  const isDiamond = lower.includes('diamond tool');
+  const isCircle = lower.includes('circle tool');
+  const isArrow = lower.includes('arrow tool');
+
+  const getShapeIconSvg = () => {
+    // Pen/freehand outline icon
+    if (isPen) {
+      // Pen nib outline only
+      return '<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M34 6 L42 14 L22 34 L14 34 L14 26 Z" stroke="currentColor" stroke-width="3" fill="none" stroke-linejoin="round"/></svg>';
+    }
+    // Icons sized for visibility; rely on current theme via stroke set in CSS or inline
+    if (isRectangle) {
+      return '<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="12" width="32" height="24" rx="2" ry="2" stroke="currentColor" stroke-width="3" fill="none"/></svg>';
+    }
+    if (isDiamond) {
+      return '<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M24 6 L40 24 L24 42 L8 24 Z" stroke="currentColor" stroke-width="3" fill="none"/></svg>';
+    }
+    if (isCircle) {
+      return '<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="14" stroke="currentColor" stroke-width="3" fill="none"/></svg>';
+    }
+    if (isArrow) {
+      return '<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 38 L38 10" stroke="currentColor" stroke-width="3" fill="none"/><path d="M30 10 L38 10 L38 18" stroke="currentColor" stroke-width="3" fill="none"/></svg>';
+    }
+    return null;
+  };
+
+  const shapeSvg = getShapeIconSvg();
+  if (shapeSvg) {
+    feedbackEl.innerHTML = shapeSvg;
+    // Ensure icon-only: no text nodes
+    feedbackEl.style.display = 'inline-flex';
+    feedbackEl.style.alignItems = 'center';
+    feedbackEl.style.justifyContent = 'center';
+  } else {
+    // Non-shape feedback (e.g., Pen tool, Saved, etc.) keeps text
+    updateTextContent(feedbackEl, message);
+  }
   
   // Add to canvas container so it appears over the canvas
   const container = getElementById('doodleCanvas')?.parentElement;

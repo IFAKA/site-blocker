@@ -56,8 +56,10 @@ export function initializeDrawingCanvas(canvas, width, height) {
  */
 export function startDrawingStroke(state, event) {
   if (!state || !state.ctx) return state;
-  
-  const pos = calculateMousePosition(event, state.canvas, state.zoom, state.panX, state.panY);
+
+  const pos = state.useCssTransform
+    ? calculateMousePositionCss(event, state.canvas, state.zoom)
+    : calculateMousePosition(event, state.canvas, state.zoom, state.panX, state.panY);
   
   // For shapes, capture a snapshot for live preview
   let shapeSnapshot = state.shapeSnapshot;
@@ -83,13 +85,17 @@ export function startDrawingStroke(state, event) {
 export function continueDrawingStroke(state, event) {
   if (!state || !state.ctx || !state.isDrawing) return state;
   
-  const pos = calculateMousePosition(event, state.canvas, state.zoom, state.panX, state.panY);
+  const pos = state.useCssTransform
+    ? calculateMousePositionCss(event, state.canvas, state.zoom)
+    : calculateMousePosition(event, state.canvas, state.zoom, state.panX, state.panY);
   
   // For freehand pen tool, draw continuously
   if (state.tool === 'pen') {
     state.ctx.save();
-    state.ctx.scale(state.zoom, state.zoom);
-    state.ctx.translate(state.panX / state.zoom, state.panY / state.zoom);
+    if (!state.useCssTransform) {
+      state.ctx.scale(state.zoom, state.zoom);
+      state.ctx.translate(state.panX / state.zoom, state.panY / state.zoom);
+    }
     state.ctx.beginPath();
     state.ctx.moveTo(state.lastX, state.lastY);
     state.ctx.lineTo(pos.x, pos.y);
@@ -153,14 +159,18 @@ export function stopDrawingStroke(state) {
 export function drawShapeStroke(state, event) {
   if (!state || !state.ctx || !state.isDrawing) return state;
   if (state.tool === 'pen') return state;
-  const pos = calculateMousePosition(event, state.canvas, state.zoom, state.panX, state.panY);
+  const pos = state.useCssTransform
+    ? calculateMousePositionCss(event, state.canvas, state.zoom)
+    : calculateMousePosition(event, state.canvas, state.zoom, state.panX, state.panY);
   const startX = state.lastX;
   const startY = state.lastY;
 
   const ctx = state.ctx;
   ctx.save();
-  ctx.scale(state.zoom, state.zoom);
-  ctx.translate(state.panX / state.zoom, state.panY / state.zoom);
+  if (!state.useCssTransform) {
+    ctx.scale(state.zoom, state.zoom);
+    ctx.translate(state.panX / state.zoom, state.panY / state.zoom);
+  }
   ctx.beginPath();
 
   if (state.tool === 'rectangle') {
@@ -225,6 +235,19 @@ export function finalizeShapeStroke(state, event) {
   }
   state = drawShapeStroke(state, event);
   return state;
+}
+
+/**
+ * Calculate mouse position when using CSS transforms for zoom/pan.
+ * Transformed rect already includes translation; inside the element, content
+ * coordinates are scaled by zoom only.
+ */
+function calculateMousePositionCss(event, canvas, zoom) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: (event.clientX - rect.left) / (zoom || 1),
+    y: (event.clientY - rect.top) / (zoom || 1)
+  };
 }
 
 /**
