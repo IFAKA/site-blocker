@@ -21,6 +21,64 @@ export function initializeKeyboardShortcuts() {
 let listMode = false;
 let selected = -1;
 
+// Smooth scroll state
+let activeScrollAnimation = null;
+let activeScrollTarget = null;
+
+// Scroll tuning
+const SCROLL_STEP_PX = 60;
+const SCROLL_FAST_MULTIPLIER = 3;
+
+function cancelActiveScroll() {
+  if (activeScrollAnimation !== null) {
+    cancelAnimationFrame(activeScrollAnimation);
+    activeScrollAnimation = null;
+  }
+}
+
+function easeOutCubic(t) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+function getPrimaryScrollContainer() {
+  // Prefer the document's scrolling element (html/body depending on browser)
+  return document.scrollingElement || document.documentElement || document.body;
+}
+
+function smoothScrollByPixels(deltaY, duration = 200) {
+  try {
+    cancelActiveScroll();
+    const container = getPrimaryScrollContainer();
+    activeScrollTarget = container;
+    const viewport = window.innerHeight || container.clientHeight;
+    const maxScroll = Math.max(0, (container.scrollHeight || document.documentElement.scrollHeight) - viewport);
+    const startY = container.scrollTop || (window.scrollY || 0);
+    const targetY = Math.max(0, Math.min(maxScroll, startY + deltaY));
+    if (targetY === startY) return;
+    const startTime = performance.now();
+
+    const step = (now) => {
+      const elapsed = now - startTime;
+      const t = Math.min(1, elapsed / duration);
+      const eased = easeOutCubic(t);
+      const current = startY + (targetY - startY) * eased;
+      if (activeScrollTarget === container) {
+        container.scrollTop = current;
+      } else {
+        // Target changed, stop this animation
+        activeScrollAnimation = null;
+        return;
+      }
+      if (t < 1) {
+        activeScrollAnimation = requestAnimationFrame(step);
+      } else {
+        activeScrollAnimation = null;
+      }
+    };
+    activeScrollAnimation = requestAnimationFrame(step);
+  } catch {}
+}
+
 /**
  * Get journal entries for list mode
  * @returns {Array} Array of entry elements
@@ -272,7 +330,6 @@ function handleGlobalKeydown(ev) {
   if (key === 'p') { ev.preventDefault(); if (window.isPrayerActive && window.isPrayerActive()) { if (window.cancelPrayer) window.cancelPrayer(); } else { if (window.startPrayer) window.startPrayer(); } return; }
   if (key === 'r') { ev.preventDefault(); if (window.showReadingModal) window.showReadingModal(); return; }
   if (key === 's') { ev.preventDefault(); const exStart = getElementById('exStart'); if (exStart) exStart.click(); return; }
-  if (key === 'j') { ev.preventDefault(); const intent = getElementById('intent'); if (intent) focusElement(intent); return; }
   if (key === 'i') { ev.preventDefault(); const intent = getElementById('intent'); if (intent) focusElement(intent); return; }
   if (key === 'l') { ev.preventDefault(); enterListMode(); return; }
   if (key === 'd') { ev.preventDefault(); if (window.showDoodleModal) window.showDoodleModal(); return; }
@@ -281,6 +338,15 @@ function handleGlobalKeydown(ev) {
   if (key === 'c') { ev.preventDefault(); if (window.showChineseModal) window.showChineseModal(); return; }
   if (key === 'v') { ev.preventDefault(); if (window.showMirrorModal) window.showMirrorModal(); return; }
   if (key === 'g') { ev.preventDefault(); if (window.focusGallery) window.focusGallery(); return; }
+
+  // Global scrolling with j/k when not in list mode and not typing (Surfingkeys-like)
+  if (key === 'j' || key === 'k') {
+    ev.preventDefault();
+    const multiplier = ev.shiftKey ? SCROLL_FAST_MULTIPLIER : 1;
+    const delta = (key === 'j' ? 1 : -1) * SCROLL_STEP_PX * multiplier;
+    smoothScrollByPixels(delta);
+    return;
+  }
   
   
   // Exercise shortcuts

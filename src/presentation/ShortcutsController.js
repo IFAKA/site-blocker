@@ -94,8 +94,9 @@ function getShortcutsContent(type) {
           <div><strong>p</strong> - Prayer</div>
           <div><strong>r</strong> - Reading</div>
           <div><strong>s</strong> - Exercise</div>
-          <div><strong>j</strong> - Focus intent</div>
           <div><strong>i</strong> - Focus intent</div>
+          <div><strong>j</strong> - Scroll down</div>
+          <div><strong>k</strong> - Scroll up</div>
           <div><strong>l</strong> - List mode</div>
           <div><strong>d</strong> - Drawing</div>
           <div><strong>e</strong> - Eye health</div>

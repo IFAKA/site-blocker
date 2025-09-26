@@ -1073,15 +1073,43 @@ function createGroupElement(group, groupIndex) {
     position: relative;
   `;
   
-  // Show group icon and count with responsive sizing
+  // Show group icon with responsive sizing
   preview.innerHTML = `
     <div style="font-size: var(--icon-size); margin-bottom: 2px;">📁</div>
-    <div style="font-size: var(--text-size);">${group.items.length}</div>
   `;
   
   // Add group name as tooltip
   preview.title = `${group.name} (${group.items.length} items)`;
   
+  // Add visible group name with ellipsis if it doesn't fit
+  const nameEl = document.createElement('div');
+  nameEl.className = 'gallery-group-name';
+  nameEl.textContent = group.name;
+  nameEl.style.cssText = `
+    margin-top: 2px;
+    max-width: 90%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: var(--text-size);
+    color: #ffffff;
+    opacity: 0.9;
+    text-align: center;
+  `;
+  preview.appendChild(nameEl);
+
+  // Add count below the name
+  const countEl = document.createElement('div');
+  countEl.className = 'gallery-group-count';
+  countEl.textContent = `${group.items.length}`;
+  countEl.style.cssText = `
+    margin-top: 2px;
+    font-size: var(--text-size);
+    color: #e2e8f0;
+    opacity: 0.9;
+  `;
+  preview.appendChild(countEl);
+
   groupEl.appendChild(preview);
   
   // Add group interactions
@@ -2195,6 +2223,8 @@ function enterGroup(groupIndex) {
   // Update navigation items for group (after DOM is rendered)
   buildGroupNavigationItems(group);
   
+  // Always start at the first item when entering a group
+  currentFocusIndex = 0;
   // Sync cursor index with new navigation array
   syncCursorIndex();
   
@@ -2209,6 +2239,8 @@ function enterGroup(groupIndex) {
  * Exit group and return to main gallery
  */
 function exitGroup() {
+  // Remember the group we are exiting so we can restore cursor to it
+  const previousGroupIndex = currentGroupIndex;
   currentGroupIndex = -1;
   window.currentGroupIndex = currentGroupIndex;
   
@@ -2219,6 +2251,13 @@ function exitGroup() {
   // Rebuild navigation items
   buildNavigationItems();
   
+  // Place cursor back on the exited group item if it exists
+  if (previousGroupIndex >= 0) {
+    const groupNavIndex = galleryNavigationItems.findIndex(item => item.type === 'group' && item.groupIndex === previousGroupIndex);
+    if (groupNavIndex >= 0) {
+      currentFocusIndex = groupNavIndex;
+    }
+  }
   // Sync cursor index with new navigation array
   syncCursorIndex();
   
