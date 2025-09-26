@@ -24,7 +24,7 @@ import { showElement, hideElement, updateTextContent, updateInnerHTML, addClass,
 
 // Import presentation layer
 import { initializeJournal } from './src/presentation/JournalController.js';
-import { initializeExercise, renderCurrentExercise } from './src/presentation/ExerciseController.js';
+import { initializeExercise, renderCurrentExercise, showExerciseModal, hideExerciseModal } from './src/presentation/ExerciseController.js';
 import { initializeReading, cancelReading, showReadingModal } from './src/presentation/ReadingController.js';
 import { initializeDrawing, resetDrawingState, showDrawingModal, hideDrawingModal } from './src/presentation/DrawingController.js';
 import { initializeEyeHealth, showEyeHealthModal, hideEyeHealthModal } from './src/presentation/EyeHealthController.js';
@@ -158,9 +158,30 @@ let galleryItems = [];
   
   // Setup progress card click handlers
   setupProgressCardClickHandlers();
+  // Setup exercise modal buttons
+  const exerciseClose = getElementById('exerciseClose');
+  if (exerciseClose) {
+    addEventListener(exerciseClose, 'click', () => {
+      hideExerciseModal();
+    });
+  }
+  const exerciseShortcutsBtn = getElementById('exerciseShortcutsBtn');
+  if (exerciseShortcutsBtn) {
+    addEventListener(exerciseShortcutsBtn, 'click', () => {
+      showShortcutsModal('exercise');
+    });
+  }
   
   // Setup new card button handlers
   setupNewCardButtons();
+
+  // Exercise card CTA
+  const exerciseCardBtn = getElementById('exerciseCardBtn');
+  if (exerciseCardBtn) {
+    addEventListener(exerciseCardBtn, 'click', () => {
+      showExerciseModal();
+    });
+  }
   
   // Setup prayer button handler
   setupPrayerButton();
@@ -239,6 +260,8 @@ let galleryItems = [];
   
   // Initialize exercise rendering
   window.renderExercise = renderCurrentExercise;
+  window.showExerciseModal = () => { console.log('showExerciseModal called'); showExerciseModal(); };
+  window.hideExerciseModal = () => { console.log('hideExerciseModal called'); hideExerciseModal(); };
   renderCurrentExercise();
 })();
 
@@ -862,6 +885,14 @@ function setupGalleryEventListeners() {
  * Setup progress card click handlers
  */
 function setupProgressCardClickHandlers() {
+  // Exercise progress card
+  const exerciseProgressCard = getElementById('exerciseProgressCard');
+  if (exerciseProgressCard) {
+    addEventListener(exerciseProgressCard, 'click', () => {
+      console.log('Exercise progress card clicked');
+      showExerciseModal();
+    });
+  }
   // Mind Exercises progress card
   const mindProgressCard = getElementById('mindProgressCard');
   if (mindProgressCard) {
@@ -1172,6 +1203,8 @@ let currentFocusIndex = -1;
 let currentGroupIndex = -1; // -1 means not in a group
 window.currentGroupIndex = currentGroupIndex; // Make it globally accessible
 let galleryNavigationItems = [];
+// Track nested group navigation within a top-level group
+let groupStack = [];
 
 // Gallery keyboard event listener reference
 let galleryKeyboardListener = null;
@@ -1418,7 +1451,25 @@ function setupGalleryKeyboardShortcuts() {
               showDoodleModal(doodle);
             }
           } else if (item.type === 'group') {
-            enterGroup(item.groupIndex);
+            // If we're at top-level, enter the top-level group as before
+            if (currentGroupIndex < 0 && typeof item.groupIndex === 'number') {
+              enterGroup(item.groupIndex);
+            } else {
+              // If we're already inside a group, treat this as a nested subgroup drill-down
+              if (Array.isArray(groupStack) && groupStack.length > 0) {
+                const parent = groupStack[groupStack.length - 1];
+                const target = (parent.items || []).find(x => x && x.id === item.id && Array.isArray(x.items));
+                if (target) {
+                  groupStack.push(target);
+                  renderGroupItems(target);
+                  buildGroupNavigationItems(target);
+                  currentFocusIndex = 0;
+                  syncCursorIndex();
+                  updateGalleryCursor();
+                  showGroupNavigationHint(target.name || 'Group');
+                }
+              }
+            }
           }
         }
         break;
@@ -1625,18 +1676,35 @@ function updateSelectionIndices() {
     });
   }
   
-  // Update groups
+  // Update groups (both top-level and nested)
   document.querySelectorAll('.gallery-group').forEach(groupEl => {
-    const groupIndex = groupEl.dataset.groupIndex;
-    const groupId = `group-${groupIndex}`;
-    
-    if (selectedItems.has(groupId)) {
-      const index = selectionArray.indexOf(groupId) + 1;
+    const hasTopLevelIndex = groupEl.hasAttribute('data-group-index');
+    if (hasTopLevelIndex) {
+      const groupIndex = groupEl.dataset.groupIndex;
+      const topLevelId = `group-${groupIndex}`;
+      if (selectedItems.has(topLevelId)) {
+        const index = selectionArray.indexOf(topLevelId) + 1;
+        groupEl.classList.add('selected');
+        groupEl.setAttribute('data-selection-index', index.toString());
+        return;
+      }
+    }
+    // For nested subgroups identified by data-group-id
+    const subgroupId = groupEl.dataset.groupId;
+    if (subgroupId && selectedItems.has(subgroupId)) {
+      const index = selectionArray.indexOf(subgroupId) + 1;
       groupEl.classList.add('selected');
       groupEl.setAttribute('data-selection-index', index.toString());
-    } else {
+    } else if (!hasTopLevelIndex) {
       groupEl.classList.remove('selected');
       groupEl.removeAttribute('data-selection-index');
+    } else if (hasTopLevelIndex) {
+      // If top-level but not selected
+      const topLevelId = `group-${groupEl.dataset.groupIndex}`;
+      if (!selectedItems.has(topLevelId)) {
+        groupEl.classList.remove('selected');
+        groupEl.removeAttribute('data-selection-index');
+      }
     }
   });
 }
@@ -1721,36 +1789,77 @@ function createGroupFromSelected() {
       const groupName = input.value.trim();
       if (groupName) {
         const groupId = `group-${Date.now()}`;
-        const selectedDoodles = Array.from(selectedItems).map(id => getDoodleById(id)).filter(Boolean);
-        
-        const group = {
-          id: groupId,
-          name: groupName,
-          items: selectedDoodles,
-          created: new Date().toISOString()
-        };
-        
-        galleryGroups.push(group);
-        saveGalleryGroups();
-        
-        // Clear selection and refresh gallery
-        selectedItems.clear();
-        updateGlobalSelectedItems();
-        updateDoodleGallery();
-        
-        // Update the full gallery modal in real time
-        updateFullGallery();
-        
-        // Rebuild navigation system after gallery update
-        buildNavigationItems();
-        
-        // Ensure click handlers are properly attached
-        addGalleryItemClickHandlers();
-        setupGalleryDragAndDrop();
-        
-        // Sync cursor index with new navigation array
-        syncCursorIndex();
-        updateGalleryCursor();
+
+        // If we're inside a group (or nested subgroup), create subgroup within current context
+        if (Array.isArray(groupStack) && groupStack.length > 0 && currentGroupIndex >= 0) {
+          const parentGroup = groupStack[groupStack.length - 1];
+          // Map selected ids to items that exist in the current parent group
+          const selectedIds = new Set(Array.from(selectedItems));
+          const selectedInParent = (parentGroup.items || []).filter(item => item && item.id && selectedIds.has(item.id));
+
+          if (selectedInParent.length < 2) {
+            // Not enough valid selections in current context
+            alert('Please select at least 2 items within this group');
+          } else {
+            // Remove selected items from parent group
+            parentGroup.items = (parentGroup.items || []).filter(item => !(item && item.id && selectedIds.has(item.id)));
+
+            // Create the subgroup with the selected items
+            const subgroup = {
+              id: groupId,
+              name: groupName,
+              items: selectedInParent,
+              created: new Date().toISOString()
+            };
+
+            // Insert subgroup into parent group (at start)
+            parentGroup.items.unshift(subgroup);
+
+            saveGalleryGroups();
+
+            // Clear selection and refresh only the current group view
+            selectedItems.clear();
+            updateGlobalSelectedItems();
+            renderGroupItems(parentGroup);
+            buildGroupNavigationItems(parentGroup);
+            addGalleryItemClickHandlers();
+            setupGalleryDragAndDrop();
+            currentFocusIndex = 0;
+            syncCursorIndex();
+            updateGalleryCursor();
+            showGroupNavigationHint(parentGroup.name || 'Group');
+          }
+        } else {
+          // Top-level behavior: create a new group in the outer gallery
+          const selectedDoodles = Array.from(selectedItems).map(id => getDoodleById(id)).filter(Boolean);
+          const group = {
+            id: groupId,
+            name: groupName,
+            items: selectedDoodles,
+            created: new Date().toISOString()
+          };
+          galleryGroups.push(group);
+          saveGalleryGroups();
+
+          // Clear selection and refresh gallery
+          selectedItems.clear();
+          updateGlobalSelectedItems();
+          updateDoodleGallery();
+
+          // Update the full gallery modal in real time
+          updateFullGallery();
+
+          // Rebuild navigation system after gallery update
+          buildNavigationItems();
+
+          // Ensure click handlers are properly attached
+          addGalleryItemClickHandlers();
+          setupGalleryDragAndDrop();
+
+          // Sync cursor index with new navigation array
+          syncCursorIndex();
+          updateGalleryCursor();
+        }
       }
       
       // Clean up
@@ -1782,24 +1891,75 @@ function ungroupSelected() {
     return;
   }
   
-  // Find selected groups and ungroup them
-  const selectedGroups = [];
+  // Two cases: top-level groups vs nested subgroups inside current group context
+  const selectedTopLevelGroups = [];
+  const selectedNestedGroupIds = [];
   selectedItems.forEach(itemId => {
-    if (itemId.startsWith('group-')) {
-      const groupIndex = parseInt(itemId.replace('group-', ''));
-      if (groupIndex >= 0 && groupIndex < galleryGroups.length) {
-        selectedGroups.push(groupIndex);
+    if (typeof itemId === 'string' && itemId.startsWith('group-')) {
+      // Could be a top-level selection id like group-<index> OR a nested subgroup id.
+      const numeric = parseInt(itemId.replace('group-', ''), 10);
+      if (!Number.isNaN(numeric) && numeric >= 0 && numeric < galleryGroups.length && currentGroupIndex < 0) {
+        selectedTopLevelGroups.push(numeric);
+      } else {
+        selectedNestedGroupIds.push(itemId);
       }
     }
   });
-  
-  if (selectedGroups.length === 0) {
+
+  // Handle nested ungroup when inside a group/subgroup (shallow ungroup: lift one level only)
+  if ((Array.isArray(groupStack) && groupStack.length > 0) && selectedNestedGroupIds.length > 0) {
+    const parentGroup = groupStack[groupStack.length - 1];
+    if (!Array.isArray(parentGroup.items)) return;
+
+    // For each selected subgroup id, replace subgroup with its items
+    selectedNestedGroupIds.forEach(id => {
+      const idx = parentGroup.items.findIndex(x => x && x.id === id && Array.isArray(x.items));
+      if (idx >= 0) {
+        const subgroup = parentGroup.items[idx];
+        // Shallow flatten: remove subgroup and insert its items in place (preserve child subgroups)
+        parentGroup.items.splice(idx, 1, ...(subgroup.items || []));
+      }
+    });
+
+    saveGalleryGroups();
+    selectedItems.clear();
+    updateGlobalSelectedItems();
+    // Refresh only current group view
+    renderGroupItems(parentGroup);
+    buildGroupNavigationItems(parentGroup);
+    addGalleryItemClickHandlers();
+    setupGalleryDragAndDrop();
+    currentFocusIndex = 0;
+    syncCursorIndex();
+    updateGalleryCursor();
+    showGroupNavigationHint(parentGroup.name || 'Group');
+    return;
+  }
+
+  // Handle top-level groups ungrouping (existing behavior)
+  if (selectedTopLevelGroups.length === 0) {
     alert('Please select groups to ungroup');
     return;
   }
   
-  // Remove selected groups (this will ungroup all items in those groups)
-  galleryGroups = galleryGroups.filter((group, index) => !selectedGroups.includes(index));
+  // For top-level ungroup: promote any subgroups to top-level groups; doodles become ungrouped automatically
+  const subgroupsToPromote = [];
+  selectedTopLevelGroups.forEach(idx => {
+    const grp = galleryGroups[idx];
+    if (grp && Array.isArray(grp.items)) {
+      grp.items.forEach(item => {
+        if (item && Array.isArray(item.items) && !item.imageData) {
+          subgroupsToPromote.push(item);
+        }
+      });
+    }
+  });
+  // Remove selected groups
+  galleryGroups = galleryGroups.filter((group, index) => !selectedTopLevelGroups.includes(index));
+  // Append promoted subgroups as top-level groups
+  if (subgroupsToPromote.length > 0) {
+    galleryGroups.push(...subgroupsToPromote);
+  }
   
   saveGalleryGroups();
   selectedItems.clear();
@@ -2217,6 +2377,9 @@ function enterGroup(groupIndex) {
   currentGroupIndex = groupIndex;
   window.currentGroupIndex = currentGroupIndex;
   
+  // Initialize nested navigation stack at this group
+  groupStack = [group];
+  
   // Update gallery to show only group items
   renderGroupItems(group);
   
@@ -2239,10 +2402,25 @@ function enterGroup(groupIndex) {
  * Exit group and return to main gallery
  */
 function exitGroup() {
+  // If inside nested subgroup, go up one level instead of exiting to main
+  if (Array.isArray(groupStack) && groupStack.length > 1) {
+    // Pop current subgroup and re-render parent
+    groupStack.pop();
+    const parent = groupStack[groupStack.length - 1];
+    renderGroupItems(parent);
+    buildGroupNavigationItems(parent);
+    currentFocusIndex = 0;
+    syncCursorIndex();
+    updateGalleryCursor();
+    showGroupNavigationHint(parent.name || 'Group');
+    return;
+  }
+  
   // Remember the group we are exiting so we can restore cursor to it
   const previousGroupIndex = currentGroupIndex;
   currentGroupIndex = -1;
   window.currentGroupIndex = currentGroupIndex;
+  groupStack = [];
   
   // Re-render full gallery
   const doodles = getItem('site-blocker:doodles') || [];
@@ -2272,23 +2450,32 @@ function exitGroup() {
  * Show group navigation hint
  */
 function showGroupNavigationHint(groupName) {
-  const hint = document.createElement('div');
-  hint.id = 'groupNavigationHint';
-  hint.style.cssText = `
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(59, 130, 246, 0.9);
-    color: white;
-    padding: 8px 16px;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    z-index: 10001;
-    pointer-events: none;
-  `;
-  hint.textContent = `Viewing: ${groupName} • Press 'b' to go back`;
-  document.body.appendChild(hint);
+  // Build path from current stack if available
+  let path = groupName;
+  if (Array.isArray(groupStack) && groupStack.length > 0) {
+    const names = groupStack.map(g => (g && g.name) ? g.name : 'Group');
+    path = names.join(' / ');
+  }
+  let hint = document.getElementById('groupNavigationHint');
+  if (!hint) {
+    hint = document.createElement('div');
+    hint.id = 'groupNavigationHint';
+    hint.style.cssText = `
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(59, 130, 246, 0.9);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      z-index: 10001;
+      pointer-events: none;
+    `;
+    document.body.appendChild(hint);
+  }
+  hint.textContent = `Viewing: ${path} • Press 'b' to go back`;
 }
 
 /**
@@ -2309,11 +2496,94 @@ function renderGroupItems(group) {
   galleryEl.innerHTML = '';
   galleryItems = [];
   
-  group.items.forEach((item, index) => {
-    const itemEl = createGalleryItem(item, index);
-    galleryEl.appendChild(itemEl);
-    galleryItems.push(itemEl);
-  });
+  // First render subgroup previews (if any)
+  if (Array.isArray(group.items)) {
+    group.items.forEach((item, index) => {
+      // If this item is itself a group (has an items array but no imageData), render as a group preview
+      if (item && Array.isArray(item.items) && !item.imageData) {
+        const subgroupEl = document.createElement('div');
+        subgroupEl.className = 'gallery-group';
+        subgroupEl.dataset.groupId = item.id || `group-${index}`;
+        const preview = document.createElement('div');
+        preview.className = 'gallery-group-preview';
+        preview.style.cssText = `
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+          border-radius: 6px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-size: 12px;
+          font-weight: bold;
+          cursor: pointer;
+          border: 2px solid transparent;
+          transition: all 0.2s ease;
+          position: relative;
+        `;
+        preview.innerHTML = `
+          <div style="font-size: var(--icon-size); margin-bottom: 2px;">📁</div>
+        `;
+        preview.title = `${item.name || 'Group'} (${item.items.length} items)`;
+        const nameEl = document.createElement('div');
+        nameEl.className = 'gallery-group-name';
+        nameEl.textContent = item.name || 'Group';
+        nameEl.style.cssText = `
+          margin-top: 2px;
+          max-width: 90%;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          font-size: var(--text-size);
+          color: #ffffff;
+          opacity: 0.9;
+          text-align: center;
+        `;
+        const countEl = document.createElement('div');
+        countEl.className = 'gallery-group-count';
+        countEl.textContent = `${item.items.length}`;
+        countEl.style.cssText = `
+          margin-top: 2px;
+          font-size: var(--text-size);
+          color: #e2e8f0;
+          opacity: 0.9;
+        `;
+        preview.appendChild(nameEl);
+        preview.appendChild(countEl);
+        subgroupEl.appendChild(preview);
+        // Click to drill into subgroup
+        subgroupEl.addEventListener('click', () => {
+          groupStack.push(item);
+          renderGroupItems(item);
+          buildGroupNavigationItems(item);
+          currentFocusIndex = 0;
+          syncCursorIndex();
+          updateGalleryCursor();
+          showGroupNavigationHint(item.name || 'Group');
+        });
+        // Right click toggles selection for nested subgroup
+        subgroupEl.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleGroupSelectionById(item.id);
+        });
+        galleryEl.appendChild(subgroupEl);
+      }
+    });
+  }
+  
+  // Then render doodles in this group
+  if (Array.isArray(group.items)) {
+    group.items.forEach((item, index) => {
+      if (item && item.imageData) {
+        const itemEl = createGalleryItem(item, index);
+        galleryEl.appendChild(itemEl);
+        galleryItems.push(itemEl);
+      }
+    });
+  }
   
   // Setup interactions
   addGalleryItemClickHandlers();
@@ -2326,17 +2596,32 @@ function renderGroupItems(group) {
 function buildGroupNavigationItems(group) {
   galleryNavigationItems = [];
   
-  group.items.forEach((item, index) => {
-    // Find the corresponding DOM element
-    const itemEl = document.querySelector(`[data-item-id="${item.id}"]`);
-    
-    galleryNavigationItems.push({
-      type: 'doodle',
-      id: item.id,
-      index: index,
-      element: itemEl
+  // Add subgroup previews to navigation
+  if (Array.isArray(group.items)) {
+    group.items.forEach((item) => {
+      if (item && Array.isArray(item.items) && !item.imageData) {
+        const el = document.querySelector(`[data-group-id="${item.id}"]`);
+        galleryNavigationItems.push({
+          type: 'group',
+          id: item.id,
+          name: item.name || 'Group',
+          element: el
+        });
+      }
     });
-  });
+    // Add doodles
+    group.items.forEach((item, index) => {
+      if (item && item.imageData) {
+        const itemEl = document.querySelector(`[data-item-id="${item.id}"]`);
+        galleryNavigationItems.push({
+          type: 'doodle',
+          id: item.id,
+          index: index,
+          element: itemEl
+        });
+      }
+    });
+  }
 }
 
 /**
@@ -2457,6 +2742,20 @@ function toggleGroupSelection(groupIndex) {
   }
   
   // Update selection indices for all selected items (this will handle the group)
+  updateSelectionIndices();
+  updateSelectedCount();
+}
+
+/**
+ * Toggle nested subgroup selection by id
+ */
+function toggleGroupSelectionById(groupId) {
+  if (!groupId) return;
+  if (selectedItems.has(groupId)) {
+    selectedItems.delete(groupId);
+  } else {
+    selectedItems.add(groupId);
+  }
   updateSelectionIndices();
   updateSelectedCount();
 }
@@ -2693,7 +2992,13 @@ function toggleCurrentSelection() {
     if (item.type === 'doodle') {
       toggleItemSelection(item.id);
     } else if (item.type === 'group') {
-      toggleGroupSelection(item.groupIndex);
+      if (currentGroupIndex < 0 && typeof item.groupIndex === 'number') {
+        // Top-level group selection by index
+        toggleGroupSelection(item.groupIndex);
+      } else if (item.id) {
+        // Nested subgroup selection by id
+        toggleGroupSelectionById(item.id);
+      }
     }
   }
 }

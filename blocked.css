@@ -138,9 +138,6 @@ textarea:focus::before {
 }
 .exercise {
   margin-top: 16px;
-  padding: 14px;
-  border: 1px solid #243242;
-  border-radius: 10px;
   background: #0b1220;
 }
 .exercise h3 {

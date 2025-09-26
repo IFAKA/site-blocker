@@ -330,6 +330,7 @@ function handleGlobalKeydown(ev) {
   if (key === 'p') { ev.preventDefault(); if (window.isPrayerActive && window.isPrayerActive()) { if (window.cancelPrayer) window.cancelPrayer(); } else { if (window.startPrayer) window.startPrayer(); } return; }
   if (key === 'r') { ev.preventDefault(); if (window.showReadingModal) window.showReadingModal(); return; }
   if (key === 's') { ev.preventDefault(); const exStart = getElementById('exStart'); if (exStart) exStart.click(); return; }
+  if (key === 'w') { ev.preventDefault(); if (window.showExerciseModal) window.showExerciseModal(); return; }
   if (key === 'i') { ev.preventDefault(); const intent = getElementById('intent'); if (intent) focusElement(intent); return; }
   if (key === 'l') { ev.preventDefault(); enterListMode(); return; }
   if (key === 'd') { ev.preventDefault(); if (window.showDoodleModal) window.showDoodleModal(); return; }

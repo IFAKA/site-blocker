@@ -32,6 +32,9 @@ const modalCloseHandlers = {
   'galleryModal': () => {
     if (window.hideGalleryModal) window.hideGalleryModal();
   },
+  'exerciseModal': () => {
+    if (window.hideExerciseModal) window.hideExerciseModal();
+  },
   'shortcutsModal': () => {
     hideShortcutsModal();
   }
@@ -45,7 +48,8 @@ const modalContextMap = {
   'mindModal': 'mind',
   'chineseModal': 'chinese',
   'mirrorModal': 'mirror',
-  'galleryModal': 'gallery'
+  'galleryModal': 'gallery',
+  'exerciseModal': 'exercise'
 };
 
 /**

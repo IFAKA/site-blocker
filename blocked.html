@@ -55,21 +55,7 @@
                 Saved locally (see Journal below).
               </div>
             </div>
-            <div>
-              <div class="exercise" id="exerciseBox">
-                <h3 id="exTitle">Exercise set</h3>
-                <div class="muted" id="exSubtitle"></div>
-                <div class="note" id="exNotes" style="margin-top: 6px"></div>
-                <div class="muted" id="exProgress" style="margin-top: 6px"></div>
-                <div style="display: flex; gap: 8px; margin-top: 10px">
-                  <button class="btn" id="exStart">
-                    Start set
-                  </button>
-                  <button class="btn ghost" id="exSkip">Skip once</button>
-                  <button class="btn secondary" id="exReset">Reset cycle</button>
-                </div>
-              </div>
-            </div>
+            
           </div>
           <div class="row" style="margin-top: 12px; gap: 12px;">
             <div>
@@ -84,6 +70,29 @@
           <div class="progress-section" style="margin-top: 20px;">
                 <h3>Activities</h3>
                 <div class="progress-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 12px;">
+                  
+                  <!-- Exercise Progress -->
+                  <div class="progress-card" id="exerciseProgressCard" style="padding: 16px; background: #1e293b; border-radius: 8px; border: 1px solid #475569;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                      <h4 style="margin: 0; color: #ef4444; font-size: 1rem;">🏋️ Workout</h4>
+                      <div class="progress-stats" id="exerciseProgressStats" style="font-size: 0.8rem; color: #94a3b8;">
+                        <span id="exerciseSetInfo">Ready</span>
+                      </div>
+                    </div>
+                    <div class="progress-chart" id="exerciseProgressChart" style="height: 60px; background: #0f172a; border-radius: 4px; position: relative; overflow: hidden;">
+                      <div class="chart-placeholder" style="display: flex; align-items: center; justify-content: center; height: 100%; color: #64748b; font-size: 0.8rem;">
+                        Press W to start a set
+                      </div>
+                    </div>
+                    <div class="progress-summary" id="exerciseProgressSummary" style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1; display: flex; justify-content: space-between; align-items: center;">
+                      <div>
+                        <span id="exerciseProgressText">See current set</span>
+                      </div>
+                      <div style="display: flex; gap: 8px;">
+                        <button class="btn" id="exerciseCardBtn" style="padding: 4px 8px; font-size: 0.7rem;">Start set</button>
+                      </div>
+                    </div>
+                  </div>
                   
                   <!-- Mind Exercises Progress -->
                   <div class="progress-card" id="mindProgressCard" style="padding: 16px; background: #1e293b; border-radius: 8px; border: 1px solid #475569;">
@@ -396,6 +405,30 @@
             </div>
           </div>
           <div class="mind-results" id="mindResults" style="display: none;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Exercise modal -->
+    <div id="exerciseModal" class="modal" aria-hidden="true">
+      <div class="panel">
+        <div style="display:flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <h3>Workout</h3>
+            <button class="btn ghost" id="exerciseShortcutsBtn" style="padding: 4px 8px; font-size: 0.8rem;">?</button>
+          </div>
+          <button class="btn ghost" id="exerciseClose">Close</button>
+        </div>
+        <div class="exercise" id="exerciseBoxModal">
+          <h3 id="exTitleModal">Exercise set</h3>
+          <div class="muted" id="exSubtitleModal"></div>
+          <div class="note" id="exNotesModal" style="margin-top: 6px"></div>
+          <div class="muted" id="exProgressModal" style="margin-top: 6px"></div>
+          <div style="display: flex; gap: 8px; margin-top: 10px">
+            <button class="btn" id="exStartModal">Start set</button>
+            <button class="btn ghost" id="exSkipModal">Skip once</button>
+            <button class="btn secondary" id="exResetModal">Reset cycle</button>
+          </div>
         </div>
       </div>
     </div>

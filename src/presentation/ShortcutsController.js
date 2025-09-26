@@ -58,7 +58,8 @@ export function showShortcutsModal(type = 'global') {
     mind: 'Mind Exercises Modal Shortcuts',
     chinese: 'Chinese Learning Modal Shortcuts',
     mirror: 'Mirror Modal Shortcuts',
-    gallery: 'Gallery Management Shortcuts'
+    gallery: 'Gallery Management Shortcuts',
+    exercise: 'Workout Modal Shortcuts'
   };
   
   updateTextContent(shortcutsTitle, titles[type] || 'Keyboard Shortcuts');
@@ -264,6 +265,19 @@ function getShortcutsContent(type) {
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; color: #64748b;">
           <div><strong>enter</strong> - Enter group</div>
           <div><strong>b</strong> - Back from group</div>
+        </div>
+      </div>
+    `
+    ,
+    exercise: `
+      <div style="margin-bottom: 20px;">
+        <h4 style="margin: 0 0 12px 0; font-size: 0.9rem; color: #cbd5e1; font-weight: 600;">Workout Modal Shortcuts</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; color: #64748b;">
+          <div><strong>w</strong> - Open workout modal</div>
+          <div><strong>s</strong> - Skip once</div>
+          <div><strong>r</strong> - Reset cycle</div>
+          <div><strong>q / escape</strong> - Close modal</div>
+          <div><strong>?</strong> - Show shortcuts</div>
         </div>
       </div>
     `

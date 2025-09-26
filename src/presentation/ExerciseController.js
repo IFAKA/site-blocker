@@ -5,6 +5,8 @@
 
 import { getCurrentExerciseInfo, getExerciseProgress, moveToNextExercise, resetExerciseCycle, getCurrentExerciseTiming } from '../application/ExerciseService.js';
 import { getElementById, updateTextContent, addClass, removeClass, addEventListener } from '../infrastructure/UI.js';
+import { isTopModal } from './ModalManager.js';
+import { showShortcutsModal } from './ShortcutsController.js';
 import { playBeep, playExerciseCompleteBeep } from '../infrastructure/Audio.js';
 
 /**
@@ -13,6 +15,7 @@ import { playBeep, playExerciseCompleteBeep } from '../infrastructure/Audio.js';
 export function initializeExercise() {
   renderCurrentExercise();
   setupExerciseControls();
+  setupExerciseKeyboardShortcuts();
 }
 
 /**
@@ -26,11 +29,26 @@ export function renderCurrentExercise() {
   const subtitleEl = getElementById('exSubtitle');
   const notesEl = getElementById('exNotes');
   const progressEl = getElementById('exProgress');
+  // Modal equivalents
+  const titleElModal = getElementById('exTitleModal');
+  const subtitleElModal = getElementById('exSubtitleModal');
+  const notesElModal = getElementById('exNotesModal');
+  const progressElModal = getElementById('exProgressModal');
+  // Activities card equivalents
+  const cardSetInfoEl = document.getElementById('exerciseSetInfo');
+  const cardProgressTextEl = document.getElementById('exerciseProgressText');
   
   if (titleEl) updateTextContent(titleEl, info.title);
   if (subtitleEl) updateTextContent(subtitleEl, info.subtitle);
   if (notesEl) updateTextContent(notesEl, info.notes);
   if (progressEl) updateTextContent(progressEl, info.progress);
+  if (titleElModal) updateTextContent(titleElModal, info.title);
+  if (subtitleElModal) updateTextContent(subtitleElModal, info.subtitle);
+  if (notesElModal) updateTextContent(notesElModal, info.notes);
+  if (progressElModal) updateTextContent(progressElModal, info.progress);
+  if (cardSetInfoEl) updateTextContent(cardSetInfoEl, info.title);
+  // Show concise set info on card (avoid verbose cycle notes)
+  if (cardProgressTextEl) updateTextContent(cardProgressTextEl, info.subtitle);
 }
 
 /**
@@ -40,17 +58,30 @@ function setupExerciseControls() {
   const startBtn = getElementById('exStart');
   const skipBtn = getElementById('exSkip');
   const resetBtn = getElementById('exReset');
+  // Modal equivalents
+  const startBtnModal = getElementById('exStartModal');
+  const skipBtnModal = getElementById('exSkipModal');
+  const resetBtnModal = getElementById('exResetModal');
   
   if (startBtn) {
     addEventListener(startBtn, 'click', handleStartExercise);
+  }
+  if (startBtnModal) {
+    addEventListener(startBtnModal, 'click', handleStartExercise);
   }
   
   if (skipBtn) {
     addEventListener(skipBtn, 'click', handleSkipExercise);
   }
+  if (skipBtnModal) {
+    addEventListener(skipBtnModal, 'click', handleSkipExercise);
+  }
   
   if (resetBtn) {
     addEventListener(resetBtn, 'click', handleResetExercise);
+  }
+  if (resetBtnModal) {
+    addEventListener(resetBtnModal, 'click', handleResetExercise);
   }
 }
 
@@ -149,6 +180,12 @@ function startExercise() {
           updateStartButton('Start set');
           playExerciseCompleteBeep();
           
+          // Close modal on completion
+          const modal = document.getElementById('exerciseModal');
+          if (modal && modal.classList.contains('show')) {
+            hideExerciseModal();
+          }
+          
           // Move to next exercise
           moveToNextExercise();
           renderCurrentExercise();
@@ -178,9 +215,76 @@ function cancelExercise() {
  */
 function updateStartButton(text) {
   const startBtn = getElementById('exStart');
-  if (startBtn) {
-    updateTextContent(startBtn, text);
+  const startBtnModal = getElementById('exStartModal');
+  if (startBtn) updateTextContent(startBtn, text);
+  if (startBtnModal) updateTextContent(startBtnModal, text);
+}
+
+/**
+ * Show exercise modal and autostart
+ */
+export function showExerciseModal() {
+  const modal = getElementById('exerciseModal');
+  if (modal) {
+    addClass(modal, 'show');
+    modal.setAttribute('aria-hidden', 'false');
+    renderCurrentExercise();
+    // Auto-start shortly after opening
+    setTimeout(() => {
+      if (!isExerciseRunning()) {
+        startExercise();
+      }
+    }, 100);
   }
+}
+
+/**
+ * Hide exercise modal
+ */
+export function hideExerciseModal() {
+  const modal = getElementById('exerciseModal');
+  if (modal) {
+    // Stop any running timers/processes when closing the modal
+    cancelExercise();
+    removeClass(modal, 'show');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+}
+
+/**
+ * Setup keyboard shortcuts for Exercise modal
+ */
+function setupExerciseKeyboardShortcuts() {
+  addEventListener(document, 'keydown', (ev) => {
+    const key = ev.key.toLowerCase();
+    const modal = getElementById('exerciseModal');
+    if (!modal || !modal.classList.contains('show')) return;
+    if (!isTopModal('exerciseModal')) return;
+    
+    // typing contexts: allow normal behavior
+    const active = document.activeElement;
+    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) {
+      return;
+    }
+    
+    if (key === 's') {
+      ev.preventDefault();
+      const skip = getElementById('exSkipModal') || getElementById('exSkip');
+      if (skip) skip.click();
+      return;
+    }
+    if (key === 'r') {
+      ev.preventDefault();
+      const reset = getElementById('exResetModal') || getElementById('exReset');
+      if (reset) reset.click();
+      return;
+    }
+    if (key === '?') {
+      ev.preventDefault();
+      showShortcutsModal('exercise');
+      return;
+    }
+  });
 }
 
 /**
