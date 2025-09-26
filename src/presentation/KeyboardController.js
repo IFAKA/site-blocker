@@ -205,12 +205,7 @@ function handleGlobalKeydown(ev) {
     if (key === 'enter') {
       ev.preventDefault();
       // Handle different input contexts
-      if (active.id === 'intent') {
-        const saveBtn = getElementById('saveIntent');
-        if (saveBtn) {
-          saveBtn.click();
-        }
-      } else if (active.id === 'mindAnswer') {
+      if (active.id === 'mindAnswer') {
         // Let the mind controller handle this - don't prevent default
         return;
       } else {
@@ -256,9 +251,8 @@ function handleGlobalKeydown(ev) {
   if (key === 'm') { ev.preventDefault(); if (window.showMindModal) window.showMindModal(); return; }
   if (key === 'c') { ev.preventDefault(); if (window.showChineseModal) window.showChineseModal(); return; }
   if (key === 'v') { ev.preventDefault(); if (window.showMirrorModal) window.showMirrorModal(); return; }
+  if (key === 'g') { ev.preventDefault(); if (window.focusGallery) window.focusGallery(); return; }
   
-  // Intent shortcuts
-  if (key === 'x') { ev.preventDefault(); const clearBtn = getElementById('clearIntent'); if (clearBtn) clearBtn.click(); return; }
   
   // Exercise shortcuts
   if (key === 'n') { ev.preventDefault(); const exSkip = getElementById('exSkip'); if (exSkip) exSkip.click(); return; }

@@ -59,74 +59,8 @@ function setupIntentHandling() {
     intent.value = saved;
   }
   
-  // Setup save button
-  const saveBtn = getElementById('saveIntent');
-  if (saveBtn) {
-    addEventListener(saveBtn, 'click', handleSaveIntent);
-  }
-  
-  // Setup clear button
-  const clearBtn = getElementById('clearIntent');
-  if (clearBtn) {
-    addEventListener(clearBtn, 'click', handleClearIntent);
-  }
 }
 
-/**
- * Handle save intent button click
- */
-async function handleSaveIntent() {
-  const intent = getElementById('intent');
-  const text = (intent?.value || '').trim();
-  
-  // Save intent to localStorage first (original behavior)
-  saveCurrentIntentText(text);
-  
-  if (text) {
-    // Get source URL from context
-    const from = new URLSearchParams(location.search).get('from') || document.referrer;
-    
-    // Save to journal
-    const success = await saveJournalEntry(text, from);
-    if (success) {
-      // Render updated journal
-      renderJournalEntries();
-      highlightNewEntry();
-      
-      // Play success sound
-      playSuccessBeep();
-    }
-  }
-  
-  // Remove saved indicator
-  const savedEl = getElementById('intentSaved');
-  if (savedEl) {
-    savedEl.style.display = 'none';
-  }
-  
-  // Clear and blur textarea
-  intent.value = '';
-  // Ensure nothing persists on reload (original behavior)
-  clearCurrentIntentText();
-  intent.blur();
-}
-
-/**
- * Handle clear intent button click
- */
-function handleClearIntent() {
-  const intent = getElementById('intent');
-  if (intent) {
-    intent.value = '';
-  }
-  
-  clearCurrentIntentText();
-  
-  const savedEl = getElementById('intentSaved');
-  if (savedEl) {
-    savedEl.style.display = 'none';
-  }
-}
 
 /**
  * Setup journal display

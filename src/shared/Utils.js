@@ -208,3 +208,53 @@ export function findPrevSentenceIndex(text, startIndex) {
   while (start < text.length && /\s/.test(text[start])) start++;
   return clamp(start, 0, text.length);
 }
+
+/**
+ * Detect if device is using dark theme
+ * @returns {boolean} True if dark theme is active
+ */
+export function isDarkTheme() {
+  if (typeof window === 'undefined') return false;
+  
+  // Check for CSS media query support
+  if (window.matchMedia) {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+  
+  // Fallback: check for dark theme indicators
+  const body = document.body;
+  if (body) {
+    const computedStyle = window.getComputedStyle(body);
+    const backgroundColor = computedStyle.backgroundColor;
+    
+    // Check if background is dark (RGB values below 128)
+    const rgbMatch = backgroundColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+    if (rgbMatch) {
+      const [, r, g, b] = rgbMatch.map(Number);
+      const brightness = (r + g + b) / 3;
+      return brightness < 128;
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Get theme-aware colors for canvas
+ * @returns {Object} Theme colors object
+ */
+export function getThemeColors() {
+  const isDark = isDarkTheme();
+  const colors = isDark ? {
+    background: '#1a1a1a',
+    stroke: '#ffffff'
+  } : {
+    background: '#ffffff',
+    stroke: '#000000'
+  };
+  
+  // Debug log to verify theme detection
+  console.log(`Theme detection: ${isDark ? 'dark' : 'light'} theme, colors:`, colors);
+  
+  return colors;
+}

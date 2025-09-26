@@ -288,6 +288,15 @@ function stepReading() {
       } catch {}
       
       playReadingCompleteBeep();
+      
+      // Save reading statistics
+      saveReadingStatistics();
+      
+      // Update progress chart
+      if (window.updateReadingProgressChart) {
+        window.updateReadingProgressChart();
+      }
+      
       return;
     }
     
@@ -1030,4 +1039,50 @@ function handleWPMChange() {
   }
   
   updateReadingInfo();
+}
+
+/**
+ * Save reading statistics
+ */
+function saveReadingStatistics() {
+  try {
+    const existingStats = getItem('site-blocker:reading:statistics');
+    let statistics = existingStats ? JSON.parse(existingStats) : {
+      totalSessions: 0,
+      totalWords: 0,
+      totalTime: 0,
+      averageWPM: 0,
+      sessions: []
+    };
+    
+    // Calculate session data
+    const wordsRead = readingPos;
+    const wpm = getCurrentReadingWPM();
+    const duration = Math.floor((wordsRead / wpm) * 60 * 1000); // Duration in milliseconds
+    
+    // Add new session
+    const sessionData = {
+      date: new Date().toISOString(),
+      wordsRead: wordsRead,
+      wpm: wpm,
+      duration: duration,
+      completed: true
+    };
+    
+    statistics.sessions.push(sessionData);
+    statistics.totalSessions += 1;
+    statistics.totalWords += sessionData.wordsRead;
+    statistics.totalTime += sessionData.duration;
+    statistics.averageWPM = Math.round(statistics.totalWords / (statistics.totalTime / 60000));
+    
+    // Keep only last 50 sessions
+    if (statistics.sessions.length > 50) {
+      statistics.sessions = statistics.sessions.slice(-50);
+    }
+    
+    setItem('site-blocker:reading:statistics', JSON.stringify(statistics));
+    console.log('Reading statistics saved:', statistics);
+  } catch (error) {
+    console.warn('Failed to save reading statistics:', error);
+  }
 }

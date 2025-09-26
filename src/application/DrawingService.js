@@ -4,7 +4,9 @@
  */
 
 import { createCanvasState, applyTransform, calculateMousePosition, calculateZoomAdjustment, createStroke, validateCanvasDimensions, calculateDrawingBounds } from '../domain/Drawing.js';
+import { setItem, getItem } from '../infrastructure/Storage.js';
 import { CANVAS_CONFIG } from '../shared/Constants.js';
+import { getThemeColors } from '../shared/Utils.js';
 
 /**
  * Initialize drawing canvas
@@ -26,10 +28,13 @@ export function initializeDrawingCanvas(canvas, width, height) {
   canvas.width = validatedDimensions.width;
   canvas.height = validatedDimensions.height;
   
+  // Get theme-aware colors
+  const themeColors = getThemeColors();
+  
   // Set initial drawing properties
-  ctx.fillStyle = CANVAS_CONFIG.BACKGROUND_COLOR;
+  ctx.fillStyle = themeColors.background;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.strokeStyle = CANVAS_CONFIG.DEFAULT_STROKE_COLOR;
+  ctx.strokeStyle = themeColors.stroke;
   ctx.lineWidth = CANVAS_CONFIG.DEFAULT_STROKE_WIDTH;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
@@ -176,9 +181,12 @@ export function redoDrawingAction(state) {
 export function clearCanvas(state) {
   if (!state || !state.ctx) return state;
   
+  // Get theme-aware colors
+  const themeColors = getThemeColors();
+  
   state.ctx.save();
   state.ctx.setTransform(1, 0, 0, 1, 0, 0);
-  state.ctx.fillStyle = CANVAS_CONFIG.BACKGROUND_COLOR;
+  state.ctx.fillStyle = themeColors.background;
   state.ctx.fillRect(0, 0, state.canvas.width, state.canvas.height);
   state.ctx.restore();
   
@@ -265,4 +273,126 @@ export async function copyCanvasToClipboard(state) {
     console.error('Error copying canvas:', error);
     return false;
   }
+}
+
+/**
+ * Save doodle to localStorage gallery
+ * @param {Object} state - Canvas state
+ * @returns {Promise<boolean>} Success status
+ */
+export async function saveDoodleToGallery(state) {
+  if (!state || !state.canvas) return false;
+  
+  try {
+    const imageData = state.canvas.toDataURL('image/png');
+    const doodleData = {
+      id: `doodle-${Date.now()}`,
+      imageData: imageData,
+      timestamp: new Date().toISOString(),
+      type: 'saved'
+    };
+    
+    // Get existing doodles
+    const existingDoodles = getItem('site-blocker:doodles') || [];
+    
+    // Add new doodle
+    existingDoodles.push(doodleData);
+    
+    // Keep only last 50 doodles to prevent storage bloat
+    const limitedDoodles = existingDoodles.slice(-50);
+    
+    // Save using infrastructure layer
+    setItem('site-blocker:doodles', limitedDoodles);
+    
+    return true;
+  } catch (error) {
+    console.error('Error saving doodle to gallery:', error);
+    return false;
+  }
+}
+
+/**
+ * Copy doodle to clipboard and save to gallery
+ * @param {Object} state - Canvas state
+ * @returns {Promise<boolean>} Success status
+ */
+export async function copyDoodleToClipboardAndSave(state) {
+  if (!state || !state.canvas) return false;
+  
+  try {
+    // Copy to clipboard
+    const copySuccess = await copyCanvasToClipboard(state);
+    
+    if (copySuccess) {
+      // Also save to gallery
+      const imageData = state.canvas.toDataURL('image/png');
+      const doodleData = {
+        id: `doodle-${Date.now()}`,
+        imageData: imageData,
+        timestamp: new Date().toISOString(),
+        type: 'clipboarded'
+      };
+      
+      // Get existing doodles
+      const existingDoodles = getItem('site-blocker:doodles') || [];
+      
+      // Add new doodle
+      existingDoodles.push(doodleData);
+      
+      // Keep only last 50 doodles to prevent storage bloat
+      const limitedDoodles = existingDoodles.slice(-50);
+      
+      // Save using infrastructure layer
+      setItem('site-blocker:doodles', limitedDoodles);
+    }
+    
+    return copySuccess;
+  } catch (error) {
+    console.error('Error copying doodle and saving to gallery:', error);
+    return false;
+  }
+}
+
+/**
+ * Get saved doodles from localStorage
+ * @returns {Array} Array of doodle data
+ */
+export function getSavedDoodles() {
+  try {
+    return getItem('site-blocker:doodles') || [];
+  } catch (error) {
+    console.error('Error getting saved doodles:', error);
+    return [];
+  }
+}
+
+/**
+ * Update canvas colors based on current theme
+ * @param {Object} state - Canvas state
+ * @returns {Object} Updated state
+ */
+export function updateCanvasTheme(state) {
+  if (!state || !state.ctx) return state;
+  
+  // Get current theme colors
+  const themeColors = getThemeColors();
+  
+  // Update stroke color for new drawings
+  state.ctx.strokeStyle = themeColors.stroke;
+  
+  return state;
+}
+
+/**
+ * Shuffle array in place (Fisher-Yates algorithm)
+ * @param {Array} array - Array to shuffle
+ * @returns {Array} Shuffled array
+ */
+export function shuffleArray(array) {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
 }

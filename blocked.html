@@ -4,823 +4,49 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Blocked</title>
-    <style>
-      html,
-      body {
-        height: 100%;
-        margin: 0;
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-        background: #0f172a;
-        color: #e2e8f0;
-      }
-      .wrap {
-        display: grid;
-        place-items: center;
-        height: 100%;
-        padding: 2rem;
-      }
-      .card {
-        width: 100%;
-        max-width: 880px;
-        background: #111827;
-        border: 1px solid #1f2937;
-        border-radius: 12px;
-        padding: 24px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-      }
-      h1 {
-        font-size: 1.75rem;
-        margin: 0 0 0.25rem 0;
-      }
-      .sub {
-        opacity: 0.8;
-        margin-bottom: 1rem;
-      }
-      .row {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 12px;
-      }
-      @media (min-width: 920px) {
-        .row {
-          grid-template-columns: 1fr 1fr;
-        }
-      }
-      textarea {
-        width: 94%;
-        min-height: 100px;
-        resize: vertical;
-        background: #0b1220;
-        color: #e5e7eb;
-        border: 1px solid #243242;
-        border-radius: 10px;
-        padding: 10px;
-      }
-      .btn {
-        background: #6366f1;
-        color: white;
-        border: 0;
-        padding: 10px 14px;
-        border-radius: 10px;
-        cursor: pointer;
-        transition: background-color 0.15s ease;
-      }
-      .btn.secondary {
-        background: #334155;
-      }
-      .btn.ghost {
-        background: transparent;
-        border: 1px solid #334155;
-      }
-      .btn.cancel {
-        background: #dc2626;
-        border-color: #dc2626;
-      }
-      .pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 12px;
-        border-radius: 999px;
-        background: #0b1220;
-        border: 1px solid #243242;
-      }
-      .muted {
-        opacity: 0.7;
-        font-size: 0.9rem;
-      }
-      .exercise {
-        margin-top: 16px;
-        padding: 14px;
-        border: 1px solid #243242;
-        border-radius: 10px;
-        background: #0b1220;
-      }
-      .exercise h3 {
-        margin: 0 0 6px 0;
-      }
-      .exercise .note {
-        opacity: 0.8;
-        font-size: 0.9rem;
-      }
-      .journal {
-        margin-top: 16px;
-        padding: 12px;
-        border: 1px solid #243242;
-        border-radius: 10px;
-        background: #0b1220;
-        max-height: 320px;
-        overflow: auto;
-      }
-      .journal h3 {
-        margin: 0 0 6px 0;
-      }
-      .entry {
-        font-size: 0.92rem;
-        padding: 6px 8px;
-        border-bottom: 1px solid #1f2937;
-      }
-      .entry.selected {
-        background: #1f2937;
-        outline: 2px solid #6366f1;
-        border-radius: 6px;
-      }
-      .entry.copied {
-        background: #065f46;
-        outline: 2px solid #10b981;
-        border-radius: 6px;
-        transition: background 0.3s ease;
-      }
-      .entry.added {
-        background: #1f2937;
-        outline: 2px solid #6366f1;
-        border-radius: 6px;
-        animation: fadeOutline 1s ease forwards;
-      }
-      @keyframes fadeOutline {
-        0% { outline-color: #6366f1; }
-        100% { outline-color: transparent; }
-      }
-      .entry small {
-        opacity: 0.7;
-      }
-      .overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(2, 6, 23, 0.7);
-        display: none;
-        align-items: center;
-        justify-content: center;
-        z-index: 9999;
-      }
-      .overlay.show { display: flex; }
-      .overlay .message {
-        background: #0b1220;
-        border: 1px solid #334155;
-        color: #e5e7eb;
-        padding: 16px 22px;
-        border-radius: 12px;
-        font-weight: 700;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-      }
-      /* Reading modal */
-      .modal {
-        position: fixed;
-        inset: 0;
-        background: rgba(2,6,23,0.8);
-        display: none;
-        align-items: center;
-        justify-content: center;
-        z-index: 10000;
-      }
-      .modal.show { display: flex; }
-      .modal .panel {
-        width: 100%;
-        max-width: 820px;
-        background: #0b1220;
-        border: 1px solid #334155;
-        border-radius: 14px;
-        padding: 18px;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-      }
-      .modal .panel.mirror-panel {
-        max-width: none;
-        width: fit-content;
-        min-width: 300px;
-      }
-      .modal .panel h3 { margin: 0 0 8px 0; }
-      .modal .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-      .modal .controls input[type="number"] {
-        width: 100px;
-        background: #0b1220;
-        color: #e5e7eb;
-        border: 1px solid #243242;
-        border-radius: 8px;
-        padding: 8px 10px;
-      }
-      .modal .reader {
-        display: grid;
-        place-items: center;
-        height: 220px;
-        margin-top: 12px;
-        border: 1px dashed #243242;
-        border-radius: 12px;
-        background: #0a1322;
-      }
-      .modal .word { font-size: 2.6rem; letter-spacing: 0.02em; }
-      .modal .import {
-        margin-top: 8px;
-        display: grid;
-        gap: 8px;
-      }
-      .modal .import textarea {
-        width: 100%;
-        min-height: 90px;
-      }
-      /* Doodle modal */
-      .modal .doodle-container {
-        position: relative;
-        width: 100%;
-        height: 400px;
-        border: 1px solid #243242;
-        border-radius: 12px;
-        background: #ffffff;
-        margin: 12px 0;
-        overflow: hidden;
-      }
-      .modal .doodle-canvas {
-        width: 100%;
-        height: 100%;
-        cursor: crosshair;
-        display: block;
-      }
-      .modal .doodle-prompt {
-        text-align: center;
-        margin: 8px 0;
-        color: #94a3b8;
-        font-style: italic;
-      }
-      .modal .doodle-controls {
-        display: flex;
-        gap: 12px;
-        align-items: center;
-        justify-content: center;
-        margin-top: 12px;
-      }
-      .modal .doodle-feedback {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: #065f46;
-        color: #ffffff;
-        padding: 12px 20px;
-        border-radius: 8px;
-        font-weight: 600;
-        z-index: 10001;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-      }
-      .modal .doodle-feedback.show {
-        opacity: 1;
-      }
-      /* Eye Health modal */
-      .modal .eye-health-content {
-        padding: 16px 0;
-      }
-      .modal .eye-phase {
-        text-align: center;
-        margin-bottom: 24px;
-      }
-      .modal .eye-phase h4 {
-        font-size: 1.5rem;
-        margin: 0 0 8px 0;
-        color: #e2e8f0;
-      }
-      .modal .eye-subtitle {
-        font-size: 1.1rem;
-        color: #94a3b8;
-        margin-bottom: 12px;
-      }
-      .modal .eye-instruction {
-        font-size: 1rem;
-        color: #cbd5e1;
-        margin-bottom: 8px;
-        line-height: 1.5;
-      }
-      .modal .eye-progress {
-        font-size: 0.9rem;
-        color: #64748b;
-      }
-      .modal .eye-breathing {
-        text-align: center;
-        margin: 16px 0;
-        padding: 16px;
-        background: #1e293b;
-        border-radius: 8px;
-        border: 1px solid #334155;
-      }
-      .modal .breathing-indicator {
-        font-size: 1.2rem;
-        color: #10b981;
-        font-weight: 600;
-      }
-      .modal .eye-controls {
-        border-top: 1px solid #334155;
-        padding-top: 16px;
-      }
-      /* Mind Exercise modal */
-      .modal .mind-content {
-        padding: 16px 0;
-      }
-      .modal .mind-stats {
-        margin-bottom: 16px;
-        padding: 12px;
-        background: #1e293b;
-        border-radius: 8px;
-        border: 1px solid #334155;
-        font-size: 0.9rem;
-        color: #94a3b8;
-      }
-      .modal .mind-exercise {
-        margin-bottom: 16px;
-        padding: 16px;
-        background: #0f172a;
-        border-radius: 8px;
-        border: 1px solid #334155;
-      }
-      .modal .mind-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 12px;
-      }
-      .modal .mind-category {
-        font-size: 0.9rem;
-        color: #10b981;
-        font-weight: 600;
-      }
-      .modal .mind-difficulty {
-        font-size: 0.8rem;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-weight: 600;
-      }
-      .modal .mind-difficulty.easy {
-        background: #065f46;
-        color: #10b981;
-      }
-      .modal .mind-difficulty.medium {
-        background: #92400e;
-        color: #f59e0b;
-      }
-      .modal .mind-difficulty.hard {
-        background: #7f1d1d;
-        color: #ef4444;
-      }
-      .modal .mind-question {
-        font-size: 1.1rem;
-        color: #e2e8f0;
-        margin-bottom: 16px;
-        line-height: 1.5;
-      }
-      .modal .mind-answer-section {
-        display: flex;
-        gap: 12px;
-        align-items: center;
-        margin-bottom: 12px;
-      }
-      .modal .mind-answer-section input {
-        flex: 1;
-        padding: 8px 12px;
-        background: #1e293b;
-        border: 1px solid #334155;
-        border-radius: 6px;
-        color: #e2e8f0;
-        font-size: 1rem;
-      }
-      .modal .mind-answer-section input:focus {
-        outline: none;
-        border-color: #10b981;
-      }
-      .modal .mind-feedback {
-        padding: 8px 12px;
-        border-radius: 6px;
-        margin-bottom: 8px;
-        font-weight: 600;
-      }
-      .modal .mind-feedback.correct {
-        background: #065f46;
-        color: #10b981;
-      }
-      .modal .mind-feedback.incorrect {
-        background: #7f1d1d;
-        color: #ef4444;
-      }
-      .modal .mind-feedback.partial {
-        background: #92400e;
-        color: #f59e0b;
-      }
-      .modal .mind-explanation {
-        padding: 8px 12px;
-        background: #1e293b;
-        border-radius: 6px;
-        color: #cbd5e1;
-        font-size: 0.9rem;
-        margin-bottom: 8px;
-      }
-      .modal .mind-hint-display {
-        padding: 8px 12px;
-        background: #92400e;
-        border-radius: 6px;
-        color: #f59e0b;
-        font-size: 0.9rem;
-        margin-bottom: 8px;
-      }
-      .modal .mind-progress {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 12px;
-        background: #1e293b;
-        border-radius: 8px;
-        border: 1px solid #334155;
-        margin-bottom: 16px;
-      }
-      .modal .mind-time {
-        color: #10b981;
-        font-weight: 600;
-      }
-      .modal .mind-score {
-        color: #f59e0b;
-        font-weight: 600;
-      }
-      .modal .mind-progress-text {
-        color: #94a3b8;
-        font-size: 0.9rem;
-      }
-      .modal .mind-controls {
-        border-top: 1px solid #334155;
-        padding-top: 16px;
-      }
-      .modal .mind-results {
-        margin-top: 16px;
-        padding: 16px;
-        background: #065f46;
-        border-radius: 8px;
-        border: 1px solid #10b981;
-      }
-      .modal .session-results h4 {
-        margin: 0 0 12px 0;
-        color: #10b981;
-      }
-      .modal .session-results p {
-        margin: 4px 0;
-        color: #cbd5e1;
-      }
-      .modal .memory-matrix {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 4px;
-        margin: 16px 0;
-        max-width: 150px;
-      }
-      .modal .matrix-row {
-        display: contents;
-      }
-      .modal .matrix-cell {
-        background: #1e293b;
-        border: 1px solid #334155;
-        border-radius: 4px;
-        padding: 8px;
-        text-align: center;
-        font-weight: 600;
-        color: #e2e8f0;
-      }
-      /* Mirror modal */
-      .modal .mirror-content {
-        padding-top: 16px;
-        text-align: center;
-      }
-      .modal .mirror-container {
-        width: 100%;
-        max-width: 500px;
-        aspect-ratio: 4/3;
-        border: 1px solid #334155;
-        border-radius: 12px;
-        background: #0f172a;
-        margin: 0 auto 0 auto;
-        overflow: hidden;
-        position: relative;
-      }
-      .modal .mirror-container video {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-      .modal .mirror-timer {
-        position: absolute;
-        bottom: 12px;
-        right: 12px;
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #10b981;
-        background: rgba(0, 0, 0, 0.7);
-        padding: 8px 12px;
-        border-radius: 6px;
-        backdrop-filter: blur(4px);
-        z-index: 10;
-      }
-      .modal .mirror-instruction {
-        position: absolute;
-        bottom: 12px;
-        left: 12px;
-        color: #94a3b8;
-        font-size: 0.9rem;
-        background: rgba(0, 0, 0, 0.7);
-        padding: 6px 10px;
-        border-radius: 4px;
-        backdrop-filter: blur(4px);
-        z-index: 10;
-      }
-      .modal .mirror-canvas {
-        display: none;
-      }
-      .modal .mirror-feedback {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: #065f46;
-        color: #ffffff;
-        padding: 12px 20px;
-        border-radius: 8px;
-        font-weight: 600;
-        z-index: 10001;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-      }
-      .modal .mirror-feedback.show {
-        opacity: 1;
-      }
-      /* Chinese Language Learning Modal Styles */
-      .modal .chinese-content {
-        max-width: 600px;
-        margin: 0 auto;
-      }
-      .modal .chinese-stats {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 12px;
-        background: #1e293b;
-        border-radius: 8px;
-        border: 1px solid #334155;
-        margin-bottom: 16px;
-      }
-      .modal .chinese-progress {
-        color: #10b981;
-        font-weight: 600;
-        font-size: 0.9rem;
-      }
-      .modal .chinese-timer {
-        color: #f59e0b;
-        font-weight: 600;
-        font-size: 0.9rem;
-      }
-      .modal .chinese-timer.warning {
-        color: #ef4444;
-        animation: pulse 1s infinite;
-      }
-      @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
-      }
-      .modal .chinese-vocabulary {
-        margin-bottom: 20px;
-      }
-      .modal .chinese-word-section {
-        text-align: center;
-        margin-bottom: 20px;
-        padding: 20px;
-        background: #0b1220;
-        border-radius: 12px;
-        border: 1px solid #243242;
-      }
-      .modal .chinese-word {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: #e2e8f0;
-        margin-bottom: 8px;
-        font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-      }
-      .modal .chinese-pinyin {
-        font-size: 1.2rem;
-        color: #f59e0b;
-        margin-bottom: 8px;
-        font-style: italic;
-      }
-      .modal .chinese-meaning {
-        font-size: 1.1rem;
-        color: #94a3b8;
-        font-weight: 500;
-      }
-      .modal .chinese-example-section {
-        padding: 16px;
-        background: #1e293b;
-        border-radius: 8px;
-        border: 1px solid #334155;
-      }
-      .modal .chinese-example {
-        font-size: 1.1rem;
-        color: #e2e8f0;
-        margin-bottom: 8px;
-        font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-      }
-      .modal .chinese-example-pinyin {
-        font-size: 1rem;
-        color: #f59e0b;
-        margin-bottom: 8px;
-        font-style: italic;
-      }
-      .modal .chinese-example-translation {
-        font-size: 1rem;
-        color: #94a3b8;
-        font-style: italic;
-      }
-      .modal .chinese-audio-section {
-        margin-bottom: 20px;
-      }
-      .modal .chinese-audio-controls {
-        display: flex;
-        gap: 12px;
-        margin-bottom: 12px;
-      }
-      .modal .chinese-audio-status {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      }
-      .modal .chinese-microphone-status,
-      .modal .chinese-tts-status,
-      .modal .chinese-recording-status {
-        font-size: 0.9rem;
-        padding: 4px 8px;
-        border-radius: 4px;
-      }
-      .modal .chinese-microphone-status.success,
-      .modal .chinese-tts-status.success {
-        background: #065f46;
-        color: #10b981;
-      }
-      .modal .chinese-microphone-status.error,
-      .modal .chinese-tts-status.error {
-        background: #7f1d1d;
-        color: #ef4444;
-      }
-      .modal .chinese-recording-status {
-        background: #1e293b;
-        color: #94a3b8;
-      }
-      .modal .chinese-recording-status.recording {
-        background: #7f1d1d;
-        color: #ef4444;
-        animation: pulse 1s infinite;
-      }
-      .modal .chinese-controls {
-        border-top: 1px solid #334155;
-        padding-top: 16px;
-      }
-      .modal .chinese-feedback {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: #065f46;
-        color: #ffffff;
-        padding: 12px 20px;
-        border-radius: 8px;
-        font-weight: 600;
-        z-index: 10001;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-      }
-      .modal .chinese-feedback.show {
-        opacity: 1;
-      }
-      /* Visual feedback for recording and playback */
-      .modal .chinese-word.recording-highlight,
-      .modal .chinese-pinyin.recording-highlight {
-        background: #7f1d1d;
-        color: #fecaca;
-        border: 2px solid #ef4444;
-        animation: recording-pulse 1s infinite;
-      }
-      .modal .chinese-word.speaking-highlight,
-      .modal .chinese-pinyin.speaking-highlight {
-        background: #065f46;
-        color: #a7f3d0;
-        border: 2px solid #10b981;
-        animation: speaking-pulse 0.8s infinite;
-      }
-      .modal .chinese-word.playback-highlight,
-      .modal .chinese-pinyin.playback-highlight {
-        background: #1e40af;
-        color: #dbeafe;
-        border: 2px solid #3b82f6;
-        animation: playback-pulse 0.6s infinite;
-      }
-      @keyframes recording-pulse {
-        0%, 100% { 
-          box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
-          transform: scale(1);
-        }
-        50% { 
-          box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
-          transform: scale(1.02);
-        }
-      }
-      @keyframes speaking-pulse {
-        0%, 100% { 
-          box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-          transform: scale(1);
-        }
-        50% { 
-          box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
-          transform: scale(1.01);
-        }
-      }
-      @keyframes playback-pulse {
-        0%, 100% { 
-          box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
-          transform: scale(1);
-        }
-        50% { 
-          box-shadow: 0 0 0 6px rgba(59, 130, 246, 0);
-          transform: scale(1.01);
-        }
-      }
-      /* Enhanced recording button styles */
-      .modal .chinese-record.recording {
-        background: #dc2626;
-        color: #ffffff;
-        animation: recording-button-pulse 1s infinite;
-      }
-      .modal .chinese-play.playing {
-        background: #1e40af;
-        color: #ffffff;
-        animation: playing-button-pulse 0.8s infinite;
-      }
-      @keyframes recording-button-pulse {
-        0%, 100% { 
-          box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7);
-        }
-        50% { 
-          box-shadow: 0 0 0 8px rgba(220, 38, 38, 0);
-        }
-      }
-      @keyframes playing-button-pulse {
-        0%, 100% { 
-          box-shadow: 0 0 0 0 rgba(30, 64, 175, 0.7);
-        }
-        50% { 
-          box-shadow: 0 0 0 6px rgba(30, 64, 175, 0);
-        }
-      }
-      
-      /* Activities Grid */
-      .activities-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 12px;
-        margin-top: 16px;
-      }
-      
-      .activities-grid .btn {
-        width: 100%;
-        padding: 12px 16px;
-        font-size: 14px;
-        text-align: center;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      
-      @media (max-width: 768px) {
-        .activities-grid {
-          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-          gap: 8px;
-        }
-        
-        .activities-grid .btn {
-          padding: 10px 12px;
-          font-size: 13px;
-        }
-      }
-    </style>
+    <link rel="stylesheet" href="blocked.css">
   </head>
   <body>
     <div class="wrap">
       <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <h1>Blocked</h1>
-          <button class="btn ghost" id="globalShortcutsBtn" style="padding: 4px 8px; font-size: 0.8rem;">?</button>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="pill" id="context"></div>
+            <button class="btn ghost" id="globalShortcutsBtn" style="padding: 4px 8px; font-size: 0.8rem;">?</button>
+          </div>
         </div>
         <div class="sub">This site is blocked by Simple Site Blocker.</div>
+
+        <!-- Doodle Gallery Section -->
+        <div class="content-section" style="margin-top: 24px;">
+          <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="margin: 0; color: #ec4899; font-size: 1.2rem; font-weight: 600;">🎨 Doodle Gallery</h3>
+            <div class="gallery-stats" id="doodleGalleryStats" style="font-size: 0.9rem; color: #94a3b8;">
+              <span id="doodleCount">0 doodles</span>
+            </div>
+          </div>
+          <div class="gallery-preview-container" id="doodleGalleryPreview" style="background: linear-gradient(135deg, #1e293b, #334155); border-radius: 12px; border: 1px solid #475569; padding: 20px; cursor: pointer; transition: all 0.3s ease;">
+            <!-- Gallery Preview Grid -->
+            <div class="gallery-preview-grid" id="doodleGalleryPreviewGrid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; min-height: 120px;">
+              <!-- 4 random preview images will be rendered here -->
+            </div>
+            
+            <!-- Gallery Preview Info -->
+            <div class="gallery-preview-info" style="margin-top: 12px; font-size: 0.9rem; color: #cbd5e1; text-align: center;">
+              <div>Click to open gallery management • <strong>G</strong> for full gallery control</div>
+            </div>
+          </div>
+        </div>
 
         <div style="display: grid; gap: 12px;">
           <div class="row" style="margin: 0; gap: 12px;">
             <div>
-              <div class="pill" id="context"></div>
               <h3>What were you looking for?</h3>
               <textarea
                 id="intent"
                 placeholder="Write the task, need, or feeling you were chasing..."
               ></textarea>
-              <div style="display: flex; gap: 8px; margin-top: 8px">
-                <button class="btn" id="saveIntent">Save to Journal</button>
-                <button class="btn secondary" id="clearIntent">Clear</button>
-              </div>
               <div
                 class="muted"
                 id="intentSaved"
@@ -863,14 +89,159 @@
                 <button class="btn secondary" id="chineseBtn">Chinese learning</button>
                 <button class="btn secondary" id="mirrorBtn">5s mirror</button>
               </div>
+              
+              <!-- Progress Visualization Section -->
+              <div class="progress-section" style="margin-top: 20px;">
+                <h3>Your Progress</h3>
+                <div class="progress-grid" style="display: grid; gap: 16px; margin-top: 12px;">
+                  
+                  <!-- Mind Exercises Progress -->
+                  <div class="progress-card" id="mindProgressCard" style="padding: 16px; background: linear-gradient(135deg, #1e293b, #334155); border-radius: 8px; border: 1px solid #475569;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                      <h4 style="margin: 0; color: #10b981; font-size: 1rem;">🧠 Brain Training</h4>
+                      <div class="progress-stats" id="mindProgressStats" style="font-size: 0.8rem; color: #94a3b8;">
+                        <span id="mindSessionsCount">0 sessions</span>
+                      </div>
+                    </div>
+                    <div class="progress-chart" id="mindProgressChart" style="height: 60px; background: #0f172a; border-radius: 4px; position: relative; overflow: hidden;">
+                      <div class="chart-placeholder" style="display: flex; align-items: center; justify-content: center; height: 100%; color: #64748b; font-size: 0.8rem;">
+                        Complete sessions to see your progress
+                      </div>
+                    </div>
+                    <div class="progress-summary" id="mindProgressSummary" style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1;">
+                      <span id="mindBestScore">Best: 0</span> • <span id="mindAvgScore">Avg: 0</span>
+                    </div>
+                  </div>
+                  
+                  <!-- Eye Health Progress -->
+                  <div class="progress-card" id="eyeProgressCard" style="padding: 16px; background: linear-gradient(135deg, #1e293b, #334155); border-radius: 8px; border: 1px solid #475569;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                      <h4 style="margin: 0; color: #3b82f6; font-size: 1rem;">👁️ Eye Health</h4>
+                      <div class="progress-stats" id="eyeProgressStats" style="font-size: 0.8rem; color: #94a3b8;">
+                        <span id="eyeSessionsCount">0 sessions</span>
+                      </div>
+                    </div>
+                    <div class="progress-chart" id="eyeProgressChart" style="height: 60px; background: #0f172a; border-radius: 4px; position: relative; overflow: hidden;">
+                      <div class="chart-placeholder" style="display: flex; align-items: center; justify-content: center; height: 100%; color: #64748b; font-size: 0.8rem;">
+                        Complete sessions to see your progress
+                      </div>
+                    </div>
+                    <div class="progress-summary" id="eyeProgressSummary" style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1;">
+                      <span id="eyeTotalTime">Total: 0min</span> • <span id="eyeStreak">Streak: 0</span>
+                    </div>
+                  </div>
+                  
+                  <!-- Chinese Learning Progress -->
+                  <div class="progress-card" id="chineseProgressCard" style="padding: 16px; background: linear-gradient(135deg, #1e293b, #334155); border-radius: 8px; border: 1px solid #475569;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                      <h4 style="margin: 0; color: #f59e0b; font-size: 1rem;">🇨🇳 Chinese Learning</h4>
+                      <div class="progress-stats" id="chineseProgressStats" style="font-size: 0.8rem; color: #94a3b8;">
+                        <span id="chineseSessionsCount">0 sessions</span>
+                      </div>
+                    </div>
+                    <div class="progress-chart" id="chineseProgressChart" style="height: 60px; background: #0f172a; border-radius: 4px; position: relative; overflow: hidden;">
+                      <div class="chart-placeholder" style="display: flex; align-items: center; justify-content: center; height: 100%; color: #64748b; font-size: 0.8rem;">
+                        Complete sessions to see your progress
+                      </div>
+                    </div>
+                    <div class="progress-summary" id="chineseProgressSummary" style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1;">
+                      <span id="chineseWordsLearned">Words: 0</span> • <span id="chineseAccuracy">Accuracy: 0%</span>
+                    </div>
+                  </div>
+                  
+                  <!-- Prayer Progress -->
+                  <div class="progress-card" id="prayerProgressCard" style="padding: 16px; background: linear-gradient(135deg, #1e293b, #334155); border-radius: 8px; border: 1px solid #475569;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                      <h4 style="margin: 0; color: #8b5cf6; font-size: 1rem;">🙏 Prayer</h4>
+                      <div class="progress-stats" id="prayerProgressStats" style="font-size: 0.8rem; color: #94a3b8;">
+                        <span id="prayerSessionsCount">0 sessions</span>
+                      </div>
+                    </div>
+                    <div class="progress-chart" id="prayerProgressChart" style="height: 60px; background: #0f172a; border-radius: 4px; position: relative; overflow: hidden;">
+                      <div class="chart-placeholder" style="display: flex; align-items: center; justify-content: center; height: 100%; color: #64748b; font-size: 0.8rem;">
+                        Complete sessions to see your progress
+                      </div>
+                    </div>
+                    <div class="progress-summary" id="prayerProgressSummary" style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1;">
+                      <span id="prayerTotalTime">Total: 0min</span> • <span id="prayerStreak">Streak: 0</span>
+                    </div>
+                  </div>
+                  
+                  <!-- Reading Progress -->
+                  <div class="progress-card" id="readingProgressCard" style="padding: 16px; background: linear-gradient(135deg, #1e293b, #334155); border-radius: 8px; border: 1px solid #475569;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                      <h4 style="margin: 0; color: #06b6d4; font-size: 1rem;">📚 Reading</h4>
+                      <div class="progress-stats" id="readingProgressStats" style="font-size: 0.8rem; color: #94a3b8;">
+                        <span id="readingSessionsCount">0 sessions</span>
+                      </div>
+                    </div>
+                    <div class="progress-chart" id="readingProgressChart" style="height: 60px; background: #0f172a; border-radius: 4px; position: relative; overflow: hidden;">
+                      <div class="chart-placeholder" style="display: flex; align-items: center; justify-content: center; height: 100%; color: #64748b; font-size: 0.8rem;">
+                        Complete sessions to see your progress
+                      </div>
+                    </div>
+                    <div class="progress-summary" id="readingProgressSummary" style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1;">
+                      <span id="readingWordsRead">Words: 0</span> • <span id="readingWPM">WPM: 0</span>
+                    </div>
+                  </div>
+                  
+                  
+                </div>
+              </div>
             </div>
           </div>
+          
+          
         </div>
       </div>
     </div>
+    
+    <!-- Gallery Management Modal -->
+    <div id="galleryModal" class="modal" aria-hidden="true">
+      <div class="panel">
+        <div style="display:flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <h3>Gallery Management</h3>
+            <span id="selectedCount" style="font-size: 0.8rem; color: #94a3b8;">0 selected</span>
+            <button class="btn ghost" id="galleryShortcutsBtn" style="padding: 4px 8px; font-size: 0.8rem;">?</button>
+          </div>
+          <button class="btn ghost" id="galleryClose">Close</button>
+        </div>
+        
+        
+        <!-- Gallery Content -->
+        <div class="doodle-gallery" id="doodleGallery">
+          <div class="gallery-placeholder" style="width: 100%; display: flex; align-items: center; justify-content: center; height: 400px; color: #64748b; font-size: 1rem; flex-direction: column; gap: 8px;">
+            <div style="font-size: 2rem;">🎨</div>
+            <div>Create doodles to see them here</div>
+            <div style="font-size: 0.8rem; color: #64748b;">Use the Doodle tool (D key) to start creating</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    
     <div id="overlay" class="overlay" aria-hidden="true">
       <div class="message" id="overlayMsg">Copied to clipboard</div>
     </div>
+    
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteConfirmModal" class="modal" aria-hidden="true">
+      <div class="panel" style="max-width: 400px;">
+        <div style="display:flex; justify-content: space-between; align-items: center;">
+          <h3>Confirm Delete</h3>
+          <button class="btn ghost" id="deleteConfirmClose">×</button>
+        </div>
+        <div style="margin: 16px 0;">
+          <p id="deleteConfirmMessage">Are you sure you want to delete the selected items? This action cannot be undone.</p>
+        </div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <button class="btn secondary" id="deleteConfirmNo">No (N)</button>
+          <button class="btn danger" id="deleteConfirmYes">Yes (Y)</button>
+        </div>
+      </div>
+    </div>
+    
     <!-- Reading modal -->
     <div id="readModal" class="modal" aria-hidden="true">
       <div class="panel">
@@ -903,16 +274,9 @@
           </div>
           <button class="btn ghost" id="doodleClose">Close</button>
         </div>
-        <div class="doodle-prompt">Hold spacebar and move your mouse to draw</div>
         <div class="doodle-container">
+          <div class="doodle-prompt">Hold spacebar and move your mouse to draw</div>
           <canvas id="doodleCanvas" class="doodle-canvas"></canvas>
-        </div>
-        <div class="doodle-controls">
-          <div class="muted">Zoom: -/= or Cmd -/Cmd =</div>
-          <div class="muted">Undo: Z | Redo: Y</div>
-          <div class="muted">Save: S | Copy: C</div>
-          <div class="muted">Reset: R | Clear: button</div>
-          <button class="btn ghost" id="doodleClear">Clear</button>
         </div>
       </div>
     </div>
@@ -942,7 +306,6 @@
               <button class="btn ghost" id="eyeSkip">Skip phase</button>
               <button class="btn ghost" id="eyeReset">Reset</button>
             </div>
-            <div class="muted">Press 'e' to open | 'q' to close | 'n' to skip | 't' to reset</div>
           </div>
         </div>
       </div>
@@ -975,9 +338,14 @@
             <div class="mind-hint-display" id="mindHintDisplay" style="display: none;"></div>
           </div>
           <div class="mind-progress">
+            <div class="mind-progress-bar">
+              <div class="mind-progress-fill" id="mindProgressFill" style="width: 0%"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
             <div class="mind-time" id="mindTime">60s remaining</div>
             <div class="mind-score" id="mindScore">Score: 0</div>
             <div class="mind-progress-text" id="mindProgress">0 exercises completed</div>
+            </div>
           </div>
           <div class="mind-controls" style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
             <div style="display: flex; align-items: center; gap: 16px;">
@@ -986,9 +354,55 @@
               <button class="btn ghost" id="mindSkip">Skip (N)</button>
               <button class="btn ghost" id="mindReset">Reset (R)</button>
             </div>
-            <div class="muted">Press 'm' to open | 'q' to close | 's' to stop | 'enter' to submit</div>
           </div>
           <div class="mind-results" id="mindResults" style="display: none;"></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Mind Shortcuts Help Modal -->
+    <div id="mindShortcutsModal" class="modal" aria-hidden="true">
+      <div class="panel" style="max-width: 500px;">
+        <div style="display:flex; justify-content: space-between; align-items: center;">
+          <h3>Mind Exercises Shortcuts</h3>
+          <button class="btn ghost" id="mindShortcutsClose">Close</button>
+        </div>
+        <div style="padding: 16px 0;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+            <div style="padding: 8px; background: #1e293b; border-radius: 6px; border: 1px solid #334155;">
+              <div style="font-weight: 700; color: #10b981; margin-bottom: 4px;">Space / S</div>
+              <div style="font-size: 0.9rem; color: #cbd5e1;">Start/Stop Session</div>
+            </div>
+            <div style="padding: 8px; background: #1e293b; border-radius: 6px; border: 1px solid #334155;">
+              <div style="font-weight: 700; color: #10b981; margin-bottom: 4px;">Enter</div>
+              <div style="font-size: 0.9rem; color: #cbd5e1;">Submit Answer</div>
+            </div>
+            <div style="padding: 8px; background: #1e293b; border-radius: 6px; border: 1px solid #334155;">
+              <div style="font-weight: 700; color: #10b981; margin-bottom: 4px;">H</div>
+              <div style="font-size: 0.9rem; color: #cbd5e1;">Show Hint</div>
+            </div>
+            <div style="padding: 8px; background: #1e293b; border-radius: 6px; border: 1px solid #334155;">
+              <div style="font-weight: 700; color: #10b981; margin-bottom: 4px;">N</div>
+              <div style="font-size: 0.9rem; color: #cbd5e1;">Skip Exercise</div>
+            </div>
+            <div style="padding: 8px; background: #1e293b; border-radius: 6px; border: 1px solid #334155;">
+              <div style="font-weight: 700; color: #10b981; margin-bottom: 4px;">R</div>
+              <div style="font-size: 0.9rem; color: #cbd5e1;">Reset Session</div>
+            </div>
+            <div style="padding: 8px; background: #1e293b; border-radius: 6px; border: 1px solid #334155;">
+              <div style="font-weight: 700; color: #10b981; margin-bottom: 4px;">I</div>
+              <div style="font-size: 0.9rem; color: #cbd5e1;">Focus Input</div>
+            </div>
+          </div>
+          <div style="padding: 12px; background: linear-gradient(135deg, #1e293b, #334155); border-radius: 8px; border-left: 4px solid #10b981;">
+            <div style="font-weight: 700; color: #10b981; margin-bottom: 8px;">💡 Tips:</div>
+            <div style="font-size: 0.9rem; color: #cbd5e1; line-height: 1.5;">
+              • Use Tab to navigate between elements<br>
+              • Press Escape to unfocus inputs<br>
+              • Memory matrices show for 5 seconds<br>
+              • Partial credit is given for close answers
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1036,7 +450,6 @@
               <button class="btn ghost" id="chineseNext">Next (N)</button>
               <button class="btn ghost" id="chinesePrev">Previous (P)</button>
             </div>
-            <div class="muted">Press 'c' to open | 'q' to close | 's' to record | 'r' to play | 'space' to speak word | 'enter' to speak sentence</div>
           </div>
         </div>
       </div>
@@ -1056,7 +469,6 @@
             <video id="mirrorVideo" autoplay muted playsinline></video>
             <canvas id="mirrorCanvas" class="mirror-canvas"></canvas>
             <div class="mirror-timer" id="mirrorTimer">5</div>
-            <div class="mirror-instruction">Press 'q' to close, 'space' to copy photo</div>
           </div>
           <div class="mirror-feedback" id="mirrorFeedback">Photo copied!</div>
         </div>

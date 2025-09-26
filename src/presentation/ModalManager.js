@@ -14,6 +14,9 @@ const modalCloseHandlers = {
   'doodleModal': () => {
     if (window.hideDrawingModal) window.hideDrawingModal();
   },
+  'doodleViewModal': () => {
+    if (window.hideDoodleModal) window.hideDoodleModal();
+  },
   'eyeHealthModal': () => {
     if (window.hideEyeHealthModal) window.hideEyeHealthModal();
   },
@@ -25,6 +28,9 @@ const modalCloseHandlers = {
   },
   'mirrorModal': () => {
     if (window.hideMirrorModal) window.hideMirrorModal();
+  },
+  'galleryModal': () => {
+    if (window.hideGalleryModal) window.hideGalleryModal();
   },
   'shortcutsModal': () => {
     hideShortcutsModal();
@@ -38,7 +44,8 @@ const modalContextMap = {
   'eyeHealthModal': 'eyeHealth',
   'mindModal': 'mind',
   'chineseModal': 'chinese',
-  'mirrorModal': 'mirror'
+  'mirrorModal': 'mirror',
+  'galleryModal': 'gallery'
 };
 
 /**
@@ -60,6 +67,12 @@ export function handleModalKeydown(ev) {
     return false; // Let other shortcuts modal keys pass through
   }
   
+  // Check if delete confirmation modal is open - let gallery handler deal with it
+  const deleteModal = getElementById('deleteConfirmModal');
+  if (deleteModal && deleteModal.classList.contains('show')) {
+    return false; // Let gallery keyboard shortcuts handle this modal
+  }
+  
   // If any modal is open, handle modal-specific shortcuts
   const anyModalOpen = !!querySelector('.modal.show');
   if (anyModalOpen) {
@@ -72,6 +85,31 @@ export function handleModalKeydown(ev) {
       // Handle close keys
       if (key === 'q' || key === 'escape') {
         ev.preventDefault();
+        
+        // Special handling for doodleViewModal when gallery is open
+        if (topModal.id === 'doodleViewModal') {
+          const galleryModal = document.getElementById('galleryModal');
+          if (galleryModal && galleryModal.classList.contains('show')) {
+            // Let gallery handler deal with this - it will close the doodle modal and stay in gallery
+            return false;
+          }
+        }
+        
+        // Special handling for galleryModal - let gallery handler deal with group navigation and selections
+        if (topModal.id === 'galleryModal') {
+          // Check if we're inside a group (currentGroupIndex is set by gallery handler)
+          if (window.currentGroupIndex !== undefined && window.currentGroupIndex >= 0) {
+            // Let gallery handler deal with this - it will handle group navigation
+            return false;
+          }
+          
+          // Check if there are selections (selectedItems is set by gallery handler)
+          if (window.selectedItems !== undefined && window.selectedItems.size > 0) {
+            // Let gallery handler deal with this - it will handle selection cancellation
+            return false;
+          }
+        }
+        
         const closeHandler = modalCloseHandlers[topModal.id];
         if (closeHandler) {
           closeHandler();

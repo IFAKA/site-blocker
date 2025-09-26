@@ -160,5 +160,14 @@ export const CANVAS_CONFIG = {
   ZOOM_STEP_FAST: 0.2,
   DEFAULT_STROKE_WIDTH: 2,
   DEFAULT_STROKE_COLOR: '#000000',
-  BACKGROUND_COLOR: '#ffffff'
+  BACKGROUND_COLOR: '#ffffff',
+  // Theme-aware colors
+  LIGHT_THEME: {
+    BACKGROUND_COLOR: '#ffffff',
+    STROKE_COLOR: '#000000'
+  },
+  DARK_THEME: {
+    BACKGROUND_COLOR: '#1a1a1a',
+    STROKE_COLOR: '#ffffff'
+  }
 };

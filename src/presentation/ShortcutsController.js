@@ -57,7 +57,8 @@ export function showShortcutsModal(type = 'global') {
     eyeHealth: 'Eye Health Modal Shortcuts',
     mind: 'Mind Exercises Modal Shortcuts',
     chinese: 'Chinese Learning Modal Shortcuts',
-    mirror: 'Mirror Modal Shortcuts'
+    mirror: 'Mirror Modal Shortcuts',
+    gallery: 'Gallery Management Shortcuts'
   };
   
   updateTextContent(shortcutsTitle, titles[type] || 'Keyboard Shortcuts');
@@ -216,6 +217,54 @@ function getShortcutsContent(type) {
           <div><strong>q</strong> - Close modal</div>
         </div>
       </div>
+    `,
+    
+    gallery: `
+      <div style="margin-bottom: 20px;">
+        <h4 style="margin: 0 0 12px 0; font-size: 0.9rem; color: #cbd5e1; font-weight: 600;">Gallery Navigation</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; color: #64748b;">
+          <div><strong>h</strong> - Move left</div>
+          <div><strong>j</strong> - Move down</div>
+          <div><strong>k</strong> - Move up</div>
+          <div><strong>l</strong> - Move right</div>
+          <div><strong>0</strong> - First item</div>
+          <div><strong>$</strong> - Last item</div>
+          <div><strong>tab</strong> - Next item</div>
+          <div><strong>shift+tab</strong> - Previous item</div>
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <h4 style="margin: 0 0 12px 0; font-size: 0.9rem; color: #cbd5e1; font-weight: 600;">Selection & Actions</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; color: #64748b;">
+          <div><strong>space</strong> - Toggle selection</div>
+          <div><strong>a</strong> - Select all</div>
+          <div><strong>g</strong> - Group selected</div>
+          <div><strong>u</strong> - Ungroup selected</div>
+          <div><strong>d</strong> - Delete selected</div>
+          <div><strong>enter</strong> - View item/Enter group</div>
+          <div><strong>escape</strong> - Exit focus</div>
+          <div><strong>q</strong> - Exit focus</div>
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <h4 style="margin: 0 0 12px 0; font-size: 0.9rem; color: #cbd5e1; font-weight: 600;">Moving Items</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; color: #64748b;">
+          <div><strong>&gt;</strong> - Move item right</div>
+          <div><strong>&lt;</strong> - Move item left</div>
+          <div><strong>m</strong> - Move to end</div>
+          <div><strong>M</strong> - Move to start</div>
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <h4 style="margin: 0 0 12px 0; font-size: 0.9rem; color: #cbd5e1; font-weight: 600;">Group Navigation</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; color: #64748b;">
+          <div><strong>enter</strong> - Enter group</div>
+          <div><strong>b</strong> - Back from group</div>
+        </div>
+      </div>
     `
   };
   
@@ -241,7 +290,8 @@ export function setupShortcutsButtons() {
     { id: 'eyeShortcutsBtn', type: 'eyeHealth' },
     { id: 'mindShortcutsBtn', type: 'mind' },
     { id: 'chineseShortcutsBtn', type: 'chinese' },
-    { id: 'mirrorShortcutsBtn', type: 'mirror' }
+    { id: 'mirrorShortcutsBtn', type: 'mirror' },
+    { id: 'galleryShortcutsBtn', type: 'gallery' }
   ];
   
   modalButtons.forEach(({ id, type }) => {

@@ -62,6 +62,9 @@ function setupMindModal() {
   const openBtn = getElementById('mindBtn');
   const modal = getElementById('mindModal');
   const closeBtn = getElementById('mindClose');
+  const shortcutsBtn = getElementById('mindShortcutsBtn');
+  const shortcutsModal = getElementById('mindShortcutsModal');
+  const shortcutsCloseBtn = getElementById('mindShortcutsClose');
   
   if (openBtn) {
     addEventListener(openBtn, 'click', () => {
@@ -72,6 +75,18 @@ function setupMindModal() {
   if (closeBtn) {
     addEventListener(closeBtn, 'click', () => {
       hideMindModal();
+    });
+  }
+  
+  if (shortcutsBtn) {
+    addEventListener(shortcutsBtn, 'click', () => {
+      showShortcutsModal();
+    });
+  }
+  
+  if (shortcutsCloseBtn) {
+    addEventListener(shortcutsCloseBtn, 'click', () => {
+      hideShortcutsModal();
     });
   }
 }
@@ -145,11 +160,11 @@ function setupMindKeyboardShortcuts() {
       return;
     }
     
-    // If typing in any input field, only allow enter and escape
+    // If typing in any input field, block all other shortcuts
     if (isTypingContext(activeElement)) {
-      // Allow space for typing in mind answer input
-      if (activeElement.id === 'mindAnswer' && key === ' ') {
-        return; // Don't prevent default, allow space for typing
+      // Allow normal typing characters (letters, numbers, symbols, space, backspace, etc.)
+      if (key.length === 1 || key === 'Backspace' || key === 'Delete' || key === 'ArrowLeft' || key === 'ArrowRight' || key === 'ArrowUp' || key === 'ArrowDown') {
+        return; // Allow normal typing
       }
       // Block all other keybindings when typing
       return;
@@ -193,6 +208,11 @@ function setupMindKeyboardShortcuts() {
       if (!isMindSessionActive()) {
         handleStartMind();
       }
+    }
+    
+    if (key === '?') {
+      ev.preventDefault();
+      showShortcutsModal();
     }
     
   });
@@ -242,6 +262,11 @@ function handleStopMind() {
   updateMindDisplay();
   updateStartButton('Start Session');
   showSessionResults();
+  
+  // Update global progress chart
+  if (window.updateMindProgressChart) {
+    window.updateMindProgressChart();
+  }
 }
 
 /**
@@ -352,10 +377,15 @@ function handleAnswerResult(result) {
     }, 1500);
   }
   
-  // Show explanation after a delay
+  // Show explanation and solution after a delay
   setTimeout(() => {
     if (result.explanation) {
       showExplanation(result.explanation);
+    }
+    
+    // Show solution for incorrect answers
+    if (!result.isCorrect && result.correctAnswer) {
+      showSolution(result.correctAnswer, result.explanation);
     }
   }, 2000);
 }
@@ -511,10 +541,22 @@ function showMemoryMatrix(matrix) {
   updateInnerHTML(matrixEl, html);
   showElement(matrixEl);
   
-  // Hide matrix after 5 seconds
-  setTimeout(() => {
-    hideElement(matrixEl);
-  }, 5000);
+  // Add countdown timer for memory matrix
+  let timeLeft = 5;
+  const countdownEl = document.createElement('div');
+  countdownEl.style.cssText = 'text-align: center; color: #f59e0b; font-weight: 700; margin-top: 8px; font-size: 1.1rem;';
+  countdownEl.textContent = `Memorize for ${timeLeft} seconds...`;
+  matrixEl.appendChild(countdownEl);
+  
+  const countdownInterval = setInterval(() => {
+    timeLeft--;
+    countdownEl.textContent = `Memorize for ${timeLeft} seconds...`;
+    
+    if (timeLeft <= 0) {
+      clearInterval(countdownInterval);
+      hideElement(matrixEl);
+    }
+  }, 1000);
 }
 
 /**
@@ -534,6 +576,7 @@ function hideMemoryMatrix() {
 function updateProgressDisplay(progress) {
   const timeEl = getElementById('mindTime');
   const progressEl = getElementById('mindProgress');
+  const progressFillEl = getElementById('mindProgressFill');
   
   if (timeEl) {
     updateTextContent(timeEl, `${progress.remaining}s remaining`);
@@ -541,6 +584,10 @@ function updateProgressDisplay(progress) {
   
   if (progressEl) {
     updateTextContent(progressEl, `${progress.exercisesCompleted} exercises completed`);
+  }
+  
+  if (progressFillEl) {
+    progressFillEl.style.width = `${progress.progress}%`;
   }
 }
 
@@ -642,6 +689,43 @@ function showExplanation(explanation) {
 }
 
 /**
+ * Show solution for failed exercises
+ * @param {string} correctAnswer - Correct answer
+ * @param {string} explanation - Explanation text
+ */
+function showSolution(correctAnswer, explanation) {
+  const solutionEl = getElementById('mindSolution');
+  if (!solutionEl) {
+    // Create solution element if it doesn't exist
+    const exerciseEl = getElementById('mindExercise');
+    if (exerciseEl) {
+      const solutionDiv = document.createElement('div');
+      solutionDiv.id = 'mindSolution';
+      solutionDiv.className = 'mind-solution';
+      solutionDiv.style.display = 'none';
+      exerciseEl.appendChild(solutionDiv);
+    }
+  }
+  
+  if (solutionEl) {
+    const solutionHTML = `
+      <div style="padding: 12px 16px; background: linear-gradient(135deg, #7f1d1d, #ef4444); border-radius: 8px; color: #ffffff; margin-bottom: 12px; border-left: 4px solid #ef4444; animation: solutionSlide 0.5s ease-out;">
+        <div style="font-weight: 700; margin-bottom: 8px; font-size: 1rem;">💡 Solution:</div>
+        <div style="font-size: 1.1rem; font-weight: 600; margin-bottom: 8px;">${correctAnswer}</div>
+        ${explanation ? `<div style="font-size: 0.9rem; opacity: 0.9;">${explanation}</div>` : ''}
+      </div>
+    `;
+    updateInnerHTML(solutionEl, solutionHTML);
+    showElement(solutionEl);
+    
+    // Hide solution after 8 seconds
+    setTimeout(() => {
+      hideElement(solutionEl);
+    }, 8000);
+  }
+}
+
+/**
  * Show session results
  */
 function showSessionResults() {
@@ -722,5 +806,27 @@ export function hideMindModal() {
     if (isMindSessionActive()) {
       handleStopMind();
     }
+  }
+}
+
+/**
+ * Show shortcuts modal
+ */
+function showShortcutsModal() {
+  const modal = getElementById('mindShortcutsModal');
+  if (modal) {
+    addClass(modal, 'show');
+    modal.setAttribute('aria-hidden', 'false');
+  }
+}
+
+/**
+ * Hide shortcuts modal
+ */
+function hideShortcutsModal() {
+  const modal = getElementById('mindShortcutsModal');
+  if (modal) {
+    removeClass(modal, 'show');
+    modal.setAttribute('aria-hidden', 'true');
   }
 }

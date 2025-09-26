@@ -3,7 +3,7 @@
  * Handles drawing interface and user interactions
  */
 
-import { initializeDrawingCanvas, startDrawingStroke, continueDrawingStroke, stopDrawingStroke, saveCanvasState, undoDrawingAction, redoDrawingAction, clearCanvas, adjustCanvasZoom, saveCanvasAsImage, copyCanvasToClipboard } from '../application/DrawingService.js';
+import { initializeDrawingCanvas, startDrawingStroke, continueDrawingStroke, stopDrawingStroke, saveCanvasState, undoDrawingAction, redoDrawingAction, clearCanvas, adjustCanvasZoom, saveCanvasAsImage, copyCanvasToClipboard, saveDoodleToGallery, copyDoodleToClipboardAndSave, updateCanvasTheme } from '../application/DrawingService.js';
 import { getElementById, showElement, hideElement, addEventListener, createElement, updateTextContent, addClass, removeClass } from '../infrastructure/UI.js';
 import { CANVAS_CONFIG } from '../shared/Constants.js';
 
@@ -33,17 +33,42 @@ function setupDrawingModal() {
   
   // Modal keydown handler attached to document (like original)
   addEventListener(document, 'keydown', handleModalKeydown);
+  
+  // Listen for theme changes
+  setupThemeListener();
+}
+
+/**
+ * Setup theme change listener
+ */
+function setupThemeListener() {
+  if (window.matchMedia) {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    
+    const handleThemeChange = (e) => {
+      // Update canvas colors if drawing is active
+      if (drawingState) {
+        drawingState = updateCanvasTheme(drawingState);
+      }
+    };
+    
+    // Listen for theme changes
+    mediaQuery.addEventListener('change', handleThemeChange);
+    
+    // Also listen for storage events (in case theme is changed programmatically)
+    addEventListener(window, 'storage', (e) => {
+      if (e.key === 'theme' || e.key?.includes('theme')) {
+        handleThemeChange();
+      }
+    });
+  }
 }
 
 /**
  * Setup drawing controls
  */
 function setupDrawingControls() {
-  const clearBtn = getElementById('doodleClear');
-  
-  if (clearBtn) {
-    addEventListener(clearBtn, 'click', handleClearCanvas);
-  }
+  // Clear button removed - using keyboard shortcut instead
 }
 
 // Drawing state
@@ -82,7 +107,13 @@ function showDrawingModal() {
   clearCanvas(drawingState);
   drawingState = saveCanvasState(drawingState);
   
+  // Ensure theme colors are applied
+  drawingState = updateCanvasTheme(drawingState);
+  
   setupCanvasEvents();
+  
+  // Auto-hide prompt after reading time
+  setupPromptAutoHide();
 }
 
 /**
@@ -101,6 +132,45 @@ function hideDrawingModal() {
   spacePressed = false;
   mouseX = 0;
   mouseY = 0;
+}
+
+/**
+ * Setup prompt auto-hide based on reading speed
+ */
+function setupPromptAutoHide() {
+  const promptEl = getElementById('doodleModal')?.querySelector('.doodle-prompt');
+  if (!promptEl) return;
+  
+  // Get the prompt text
+  const promptText = promptEl.textContent || 'Hold spacebar and move your mouse to draw';
+  
+  // Calculate word count
+  const wordCount = promptText.trim().split(/\s+/).length;
+  
+  // Get average reading speed (words per minute) - default to 200 WPM
+  const averageWPM = 200;
+  
+  // Calculate display time in milliseconds
+  const displayTimeMs = (wordCount / averageWPM) * 60 * 1000;
+  
+  // Add minimum display time of 2 seconds and maximum of 8 seconds
+  const minTime = 2000;
+  const maxTime = 8000;
+  const finalDisplayTime = Math.max(minTime, Math.min(maxTime, displayTimeMs));
+  
+  // Auto-hide after calculated time
+  setTimeout(() => {
+    if (promptEl && promptEl.parentNode) {
+      addClass(promptEl, 'fade-out');
+      
+      // Remove element after fade animation
+      setTimeout(() => {
+        if (promptEl && promptEl.parentNode) {
+          promptEl.remove();
+        }
+      }, 500); // Match CSS transition duration
+    }
+  }, finalDisplayTime);
 }
 
 /**
@@ -275,7 +345,14 @@ function handleClearCanvas() {
 async function handleSaveCanvas() {
   const success = await saveCanvasAsImage(drawingState);
   if (success) {
+    // Also save to gallery
+    await saveDoodleToGallery(drawingState);
     showFeedback('Saved!');
+    
+    // Update gallery
+    if (window.updateDoodleGallery) {
+      window.updateDoodleGallery();
+    }
   } else {
     showFeedback('Save failed');
   }
@@ -285,9 +362,14 @@ async function handleSaveCanvas() {
  * Handle copy canvas
  */
 async function handleCopyCanvas() {
-  const success = await copyCanvasToClipboard(drawingState);
+  const success = await copyDoodleToClipboardAndSave(drawingState);
   if (success) {
     showFeedback('Copied to clipboard!');
+    
+    // Update gallery
+    if (window.updateDoodleGallery) {
+      window.updateDoodleGallery();
+    }
   } else {
     showFeedback('Copy failed');
   }
@@ -387,10 +469,10 @@ function showFeedback(message) {
   
   updateTextContent(feedbackEl, message);
   
-  // Add to modal (not panel) to match CSS selector
-  const modal = getElementById('doodleModal');
-  if (modal) {
-    modal.appendChild(feedbackEl);
+  // Add to canvas container so it appears over the canvas
+  const container = getElementById('doodleCanvas')?.parentElement;
+  if (container) {
+    container.appendChild(feedbackEl);
     
     // Show feedback with slight delay to ensure element is rendered
     setTimeout(() => {
