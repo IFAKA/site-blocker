@@ -54,7 +54,7 @@ function setupMirrorModal() {
 /**
  * Show mirror modal and start camera
  */
-async function showMirrorModal() {
+export async function showMirrorModal() {
   const mirrorModal = getElementById('mirrorModal');
   const mirrorVideo = getElementById('mirrorVideo');
   const mirrorTimerEl = getElementById('mirrorTimer');

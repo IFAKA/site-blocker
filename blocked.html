@@ -52,17 +52,9 @@
                 id="intentSaved"
                 style="display: none; margin-top: 6px"
               >
-                Saved locally (see Journal on the right).
+                Saved locally (see Journal below).
               </div>
             </div>
-            <div>
-              <h3>Journal</h3>
-              <div class="journal" id="journalBox">
-                <div id="journalEntries" class="muted">No entries yet.</div>
-              </div>
-            </div>
-          </div>
-          <div class="row" style="margin-top: 12px; gap: 12px;">
             <div>
               <div class="exercise" id="exerciseBox">
                 <h3 id="exTitle">Exercise set</h3>
@@ -78,25 +70,23 @@
                 </div>
               </div>
             </div>
+          </div>
+          <div class="row" style="margin-top: 12px; gap: 12px;">
             <div>
-              <h3>1m Activities</h3>
-              <div class="activities-grid">
-                <button class="btn secondary" id="prayBtn">Prayer</button>
-                <button class="btn secondary" id="readBtn">Reading</button>
-                <button class="btn secondary" id="doodleBtn">Draw your mood</button>
-                <button class="btn secondary" id="eyeHealthBtn">Eye exercises</button>
-                <button class="btn secondary" id="mindBtn">Brain training</button>
-                <button class="btn secondary" id="chineseBtn">Chinese learning</button>
-                <button class="btn secondary" id="mirrorBtn">5s mirror</button>
+              <h3>Journal</h3>
+              <div class="journal" id="journalBox">
+                <div id="journalEntries" class="muted">No entries yet.</div>
               </div>
-              
-              <!-- Progress Visualization Section -->
-              <div class="progress-section" style="margin-top: 20px;">
-                <h3>Your Progress</h3>
-                <div class="progress-grid" style="display: grid; gap: 16px; margin-top: 12px;">
+            </div>
+          </div>
+          
+          <!-- Activities Section -->
+          <div class="progress-section" style="margin-top: 20px;">
+                <h3>Activities</h3>
+                <div class="progress-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 12px;">
                   
                   <!-- Mind Exercises Progress -->
-                  <div class="progress-card" id="mindProgressCard" style="padding: 16px; background: linear-gradient(135deg, #1e293b, #334155); border-radius: 8px; border: 1px solid #475569;">
+                  <div class="progress-card" id="mindProgressCard" style="padding: 16px; background: #1e293b; border-radius: 8px; border: 1px solid #475569;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                       <h4 style="margin: 0; color: #10b981; font-size: 1rem;">🧠 Brain Training</h4>
                       <div class="progress-stats" id="mindProgressStats" style="font-size: 0.8rem; color: #94a3b8;">
@@ -114,7 +104,7 @@
                   </div>
                   
                   <!-- Eye Health Progress -->
-                  <div class="progress-card" id="eyeProgressCard" style="padding: 16px; background: linear-gradient(135deg, #1e293b, #334155); border-radius: 8px; border: 1px solid #475569;">
+                  <div class="progress-card" id="eyeProgressCard" style="padding: 16px; background: #1e293b; border-radius: 8px; border: 1px solid #475569;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                       <h4 style="margin: 0; color: #3b82f6; font-size: 1rem;">👁️ Eye Health</h4>
                       <div class="progress-stats" id="eyeProgressStats" style="font-size: 0.8rem; color: #94a3b8;">
@@ -132,7 +122,7 @@
                   </div>
                   
                   <!-- Chinese Learning Progress -->
-                  <div class="progress-card" id="chineseProgressCard" style="padding: 16px; background: linear-gradient(135deg, #1e293b, #334155); border-radius: 8px; border: 1px solid #475569;">
+                  <div class="progress-card" id="chineseProgressCard" style="padding: 16px; background: #1e293b; border-radius: 8px; border: 1px solid #475569;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                       <h4 style="margin: 0; color: #f59e0b; font-size: 1rem;">🇨🇳 Chinese Learning</h4>
                       <div class="progress-stats" id="chineseProgressStats" style="font-size: 0.8rem; color: #94a3b8;">
@@ -150,7 +140,7 @@
                   </div>
                   
                   <!-- Prayer Progress -->
-                  <div class="progress-card" id="prayerProgressCard" style="padding: 16px; background: linear-gradient(135deg, #1e293b, #334155); border-radius: 8px; border: 1px solid #475569;">
+                  <div class="progress-card" id="prayerProgressCard" style="padding: 16px; background: #1e293b; border-radius: 8px; border: 1px solid #475569;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                       <h4 style="margin: 0; color: #8b5cf6; font-size: 1rem;">🙏 Prayer</h4>
                       <div class="progress-stats" id="prayerProgressStats" style="font-size: 0.8rem; color: #94a3b8;">
@@ -162,13 +152,18 @@
                         Complete sessions to see your progress
                       </div>
                     </div>
-                    <div class="progress-summary" id="prayerProgressSummary" style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1;">
-                      <span id="prayerTotalTime">Total: 0min</span> • <span id="prayerStreak">Streak: 0</span>
+                    <div class="progress-summary" id="prayerProgressSummary" style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1; display: flex; justify-content: space-between; align-items: center;">
+                      <div>
+                        <span id="prayerTotalTime">Total: 0min</span> • <span id="prayerStreak">Streak: 0</span>
+                      </div>
+                      <div id="prayerCountdown" style="font-size: 0.8rem; color: #8b5cf6; font-weight: 600; display: none;">
+                        60s
+                      </div>
                     </div>
                   </div>
                   
                   <!-- Reading Progress -->
-                  <div class="progress-card" id="readingProgressCard" style="padding: 16px; background: linear-gradient(135deg, #1e293b, #334155); border-radius: 8px; border: 1px solid #475569;">
+                  <div class="progress-card" id="readingProgressCard" style="padding: 16px; background: #1e293b; border-radius: 8px; border: 1px solid #475569;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                       <h4 style="margin: 0; color: #06b6d4; font-size: 1rem;">📚 Reading</h4>
                       <div class="progress-stats" id="readingProgressStats" style="font-size: 0.8rem; color: #94a3b8;">
@@ -185,6 +180,51 @@
                     </div>
                   </div>
                   
+                  <!-- Mirror Progress -->
+                  <div class="progress-card" id="mirrorProgressCard" style="padding: 16px; background: #1e293b; border-radius: 8px; border: 1px solid #475569;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                      <h4 style="margin: 0; color: #3b82f6; font-size: 1rem;">🪞 Mirror</h4>
+                      <div class="progress-stats" id="mirrorProgressStats" style="font-size: 0.8rem; color: #94a3b8;">
+                        <span id="mirrorSessionsCount">0 sessions</span>
+                      </div>
+                    </div>
+                    <div class="progress-chart" id="mirrorProgressChart" style="height: 60px; background: #0f172a; border-radius: 4px; position: relative; overflow: hidden;">
+                      <div class="chart-placeholder" style="display: flex; align-items: center; justify-content: center; height: 100%; color: #64748b; font-size: 0.8rem;">
+                        Take a moment to see yourself
+                      </div>
+                    </div>
+                    <div class="progress-summary" id="mirrorProgressSummary" style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1; display: flex; justify-content: space-between; align-items: center;">
+                      <div>
+                        <span id="mirrorTotalTime">Total: 0min</span> • <span id="mirrorStreak">Streak: 0</span>
+                      </div>
+                      <div style="display: flex; gap: 8px;">
+                        <button class="btn" id="mirrorCardBtn" style="padding: 4px 8px; font-size: 0.7rem;">Start 5s mirror</button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Draw Progress -->
+                  <div class="progress-card" id="drawProgressCard" style="padding: 16px; background: #1e293b; border-radius: 8px; border: 1px solid #475569;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                      <h4 style="margin: 0; color: #ec4899; font-size: 1rem;">🎨 Draw your mood</h4>
+                      <div class="progress-stats" id="drawProgressStats" style="font-size: 0.8rem; color: #94a3b8;">
+                        <span id="drawSessionsCount">0 doodles</span>
+                      </div>
+                    </div>
+                    <div class="progress-chart" id="drawProgressChart" style="height: 60px; background: #0f172a; border-radius: 4px; position: relative; overflow: hidden;">
+                      <div class="chart-placeholder" style="display: flex; align-items: center; justify-content: center; height: 100%; color: #64748b; font-size: 0.8rem;">
+                        Express your current feelings
+                      </div>
+                    </div>
+                    <div class="progress-summary" id="drawProgressSummary" style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1; display: flex; justify-content: space-between; align-items: center;">
+                      <div>
+                        <span id="drawTotalTime">Total: 0min</span> • <span id="drawStreak">Streak: 0</span>
+                      </div>
+                      <div style="display: flex; gap: 8px;">
+                        <button class="btn" id="drawCardBtn" style="padding: 4px 8px; font-size: 0.7rem;">Start drawing</button>
+                      </div>
+                    </div>
+                  </div>
                   
                 </div>
               </div>

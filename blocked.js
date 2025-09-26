@@ -25,15 +25,16 @@ import { showElement, hideElement, updateTextContent, updateInnerHTML, addClass,
 // Import presentation layer
 import { initializeJournal } from './src/presentation/JournalController.js';
 import { initializeExercise, renderCurrentExercise } from './src/presentation/ExerciseController.js';
-import { initializeReading, cancelReading } from './src/presentation/ReadingController.js';
-import { initializeDrawing, resetDrawingState } from './src/presentation/DrawingController.js';
+import { initializeReading, cancelReading, showReadingModal } from './src/presentation/ReadingController.js';
+import { initializeDrawing, resetDrawingState, showDrawingModal, hideDrawingModal } from './src/presentation/DrawingController.js';
 import { initializeEyeHealth, showEyeHealthModal, hideEyeHealthModal } from './src/presentation/EyeHealthController.js';
 import { initializeMind, showMindModal, hideMindModal } from './src/presentation/MindController.js';
-import { initializeChinese, getChineseModal, isChineseModalOpen, resetChineseModal } from './src/presentation/ChineseController.js';
-import { initializeMirror, resetMirrorModal } from './src/presentation/MirrorController.js';
+import { initializeChinese, getChineseModal, isChineseModalOpen, resetChineseModal, showChineseModal } from './src/presentation/ChineseController.js';
+import { initializeMirror, resetMirrorModal, showMirrorModal } from './src/presentation/MirrorController.js';
 import { initializeKeyboardShortcuts } from './src/presentation/KeyboardController.js';
 import { initializeShortcutsModal, setupShortcutsButtons, showShortcutsModal } from './src/presentation/ShortcutsController.js';
 import { handleModalKeydown } from './src/presentation/ModalManager.js';
+import { initializePrayer, startPrayer, cancelPrayer } from './src/presentation/PrayerController.js';
 
 // Import shared utilities
 import { clamp, debounce, throttle, formatTimestamp, parseUrl, extractDomain, isWordChar, findNextWordIndex, findPrevWordIndex, isSentencePunct, getTokenBefore, looksLikeSentenceBoundary, findNextSentenceIndex, findPrevSentenceIndex } from './src/shared/Utils.js';
@@ -132,11 +133,7 @@ let galleryItems = [];
   // Make doodle modal globally accessible
   window.showDoodleModal = () => {
     console.log('showDoodleModal called');
-    const doodleBtn = getElementById('doodleBtn');
-    console.log('doodleBtn found:', !!doodleBtn);
-    if (doodleBtn) {
-      doodleBtn.click();
-    }
+    showDrawingModal();
   };
   
   // Make eye health modal globally accessible
@@ -159,23 +156,42 @@ let galleryItems = [];
   // Setup gallery event listeners
   setupGalleryEventListeners();
   
+  // Setup progress card click handlers
+  setupProgressCardClickHandlers();
+  
+  // Setup new card button handlers
+  setupNewCardButtons();
+  
+  // Setup prayer button handler
+  setupPrayerButton();
+  
+  
   // Make mind modal globally accessible
   window.showMindModal = () => {
     console.log('showMindModal called');
     showMindModal();
   };
   
+  // Make reading modal globally accessible
+  window.showReadingModal = () => {
+    console.log('showReadingModal called');
+    showReadingModal();
+  };
+  
+  // Make mirror modal globally accessible
+  window.showMirrorModal = () => {
+    console.log('showMirrorModal called');
+    showMirrorModal();
+  };
+  
   // Make Chinese modal globally accessible
   window.showChineseModal = () => {
     console.log('showChineseModal called');
-    const chineseBtn = getElementById('chineseBtn');
-    if (chineseBtn) {
-      chineseBtn.click();
-    }
+    showChineseModal();
   };
   
   // Make doodle modal functions globally accessible
-  window.hideDoodleModal = hideDoodleModal;
+  window.hideDoodleModal = hideDrawingModal;
   
   // Make shortcuts modal globally accessible (assign early)
   window.showShortcutsModal = showShortcutsModal;
@@ -227,69 +243,22 @@ let galleryItems = [];
 })();
 
 /**
- * Initialize prayer functionality
+ * Setup prayer button click handler (legacy support)
  */
-function initializePrayer() {
-  console.log('initializePrayer called');
+function setupPrayerButton() {
   const prayBtn = getElementById('prayBtn');
-  console.log('prayBtn found:', !!prayBtn);
-  if (!prayBtn) return;
-  
-  const controller = createHoverCancelController(prayBtn, prayBtn.textContent || '1‑min prayer');
-  let seconds = 60;
-  let timer = null;
-  
-  function start() {
-    console.log('Prayer start function called');
-    if (timer) clearInterval(timer);
-    seconds = 60;
-    controller.setRunning(true);
-    controller.start();
-    controller.setLabel('60s');
-    
-    timer = setInterval(() => {
-      seconds -= 1;
-      if (!controller.isHover()) {
-        controller.setLabel(`${String(seconds % 60).padStart(2, '0')}s`);
+  if (prayBtn) {
+    addEventListener(prayBtn, 'click', () => {
+      console.log('Prayer button clicked');
+      if (window.isPrayerActive && window.isPrayerActive()) {
+        cancelPrayer();
+      } else {
+        startPrayer();
       }
-      if (seconds <= 0) {
-        clearInterval(timer);
-        timer = null;
-        controller.stop();
-        console.log('Prayer complete, playing beep');
-        playPrayerCompleteBeep();
-        
-        // Save prayer statistics
-        savePrayerStatistics();
-        
-        // Update progress chart
-        if (window.updatePrayerProgressChart) {
-          window.updatePrayerProgressChart();
-        }
-      }
-    }, 1000);
-    
-    console.log('Playing start beep');
-    playBeep(800, 160);
+    });
   }
-  
-  function cancel() {
-    if (timer) {
-      clearInterval(timer);
-      timer = null;
-    }
-    controller.stop();
-  }
-  
-  addEventListener(prayBtn, 'click', () => {
-    console.log('Prayer button clicked, isRunning:', controller.isRunning());
-    if (controller.isRunning()) {
-      cancel();
-    } else {
-      start();
-    }
-  });
 }
+
 
 /**
  * Create hover cancel controller for buttons
@@ -885,6 +854,64 @@ function setupGalleryEventListeners() {
   
   if (deleteConfirmYes) {
     addEventListener(deleteConfirmYes, 'click', confirmDelete);
+  }
+}
+
+/**
+ * Setup progress card click handlers
+ */
+function setupProgressCardClickHandlers() {
+  // Mind Exercises progress card
+  const mindProgressCard = getElementById('mindProgressCard');
+  if (mindProgressCard) {
+    addEventListener(mindProgressCard, 'click', () => {
+      console.log('Mind progress card clicked');
+      showMindModal();
+    });
+  }
+  
+  // Eye Health progress card
+  const eyeProgressCard = getElementById('eyeProgressCard');
+  if (eyeProgressCard) {
+    addEventListener(eyeProgressCard, 'click', () => {
+      console.log('Eye progress card clicked');
+      showEyeHealthModal();
+    });
+  }
+  
+  // Chinese Learning progress card
+  const chineseProgressCard = getElementById('chineseProgressCard');
+  if (chineseProgressCard) {
+    addEventListener(chineseProgressCard, 'click', () => {
+      console.log('Chinese progress card clicked');
+      showChineseModal();
+    });
+  }
+  
+  // Prayer progress card
+  const prayerProgressCard = getElementById('prayerProgressCard');
+  if (prayerProgressCard) {
+    addEventListener(prayerProgressCard, 'click', () => {
+      console.log('Prayer progress card clicked');
+      // Use independent prayer function
+      if (window.isPrayerActive && window.isPrayerActive()) {
+        cancelPrayer();
+      } else {
+        startPrayer();
+      }
+    });
+  }
+  
+  // Reading progress card
+  const readingProgressCard = getElementById('readingProgressCard');
+  if (readingProgressCard) {
+    addEventListener(readingProgressCard, 'click', () => {
+      console.log('Reading progress card clicked');
+      // Use independent reading modal function
+      if (window.showReadingModal) {
+        window.showReadingModal();
+      }
+    });
   }
 }
 
@@ -2665,4 +2692,61 @@ function adjustColorBrightness(color, percent) {
   return '#' + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
     (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
     (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+}
+
+/**
+ * Setup new card button handlers
+ */
+function setupNewCardButtons() {
+  // Mirror card button
+  const mirrorCardBtn = getElementById('mirrorCardBtn');
+  if (mirrorCardBtn) {
+    addEventListener(mirrorCardBtn, 'click', () => {
+      // Use independent mirror modal function
+      if (window.showMirrorModal) {
+        window.showMirrorModal();
+      }
+    });
+  }
+  
+  // Draw card button
+  const drawCardBtn = getElementById('drawCardBtn');
+  if (drawCardBtn) {
+    addEventListener(drawCardBtn, 'click', () => {
+      // Use independent drawing modal function
+      if (window.showDoodleModal) {
+        window.showDoodleModal();
+      }
+    });
+  }
+  
+  // Mirror progress card click handler
+  const mirrorProgressCard = getElementById('mirrorProgressCard');
+  if (mirrorProgressCard) {
+    addEventListener(mirrorProgressCard, 'click', (e) => {
+      // Don't trigger if clicking the button
+      if (e.target === mirrorCardBtn || e.target.closest('button')) return;
+      
+      console.log('Mirror progress card clicked');
+      // Use independent mirror modal function
+      if (window.showMirrorModal) {
+        window.showMirrorModal();
+      }
+    });
+  }
+  
+  // Draw progress card click handler
+  const drawProgressCard = getElementById('drawProgressCard');
+  if (drawProgressCard) {
+    addEventListener(drawProgressCard, 'click', (e) => {
+      // Don't trigger if clicking the button
+      if (e.target === drawCardBtn || e.target.closest('button')) return;
+      
+      console.log('Draw progress card clicked');
+      // Use independent drawing modal function
+      if (window.showDoodleModal) {
+        window.showDoodleModal();
+      }
+    });
+  }
 }

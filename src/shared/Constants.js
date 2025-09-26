@@ -50,7 +50,7 @@ export const KEYBOARD_SHORTCUTS = {
   MIRROR: 'v',
   
   // Intent shortcuts
-  SAVE_INTENT: 'enter',
+  SAVE_INTENT: 'cmd+enter',
   CLEAR_INTENT: 'x',
   
   // Exercise shortcuts

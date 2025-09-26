@@ -109,7 +109,7 @@ function getShortcutsContent(type) {
       <div style="margin-bottom: 20px;">
         <h4 style="margin: 0 0 12px 0; font-size: 0.9rem; color: #cbd5e1; font-weight: 600;">Intent Management</h4>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; color: #64748b;">
-          <div><strong>enter</strong> - Save intent</div>
+          <div><strong>⌘+enter</strong> - Save intent</div>
           <div><strong>x</strong> - Clear intent</div>
           <div><strong>escape</strong> - Cancel/blur</div>
         </div>

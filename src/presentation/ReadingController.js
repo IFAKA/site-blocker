@@ -56,7 +56,7 @@ function setupReadingControls() {
 /**
  * Show reading modal
  */
-async function showReadingModal() {
+export async function showReadingModal() {
   const modal = getElementById('readModal');
   if (!modal) return;
   

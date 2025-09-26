@@ -203,6 +203,35 @@ function handleGlobalKeydown(ev) {
       return;
     }
     if (key === 'enter') {
+      // Handle textarea specially - allow line breaks and Cmd+Enter for submission
+      if (active.tagName === 'TEXTAREA') {
+        // Allow Shift+Enter for line breaks (default behavior)
+        if (ev.shiftKey) {
+          return; // Let default behavior happen (new line)
+        }
+        // Cmd+Enter or Ctrl+Enter for submission
+        if (ev.metaKey || ev.ctrlKey) {
+          ev.preventDefault();
+          // Handle intent textarea specially
+          if (active.id === 'intent') {
+            // Let the JournalController handle this
+            return;
+          }
+          // Try to find a submit button for other forms
+          const form = active.closest('form');
+          if (form) {
+            const submitBtn = form.querySelector('button[type="submit"], .btn');
+            if (submitBtn) {
+              submitBtn.click();
+            }
+          }
+          return;
+        }
+        // Regular Enter in textarea - allow default behavior (new line)
+        return;
+      }
+      
+      // For other input types, handle submission
       ev.preventDefault();
       // Handle different input contexts
       if (active.id === 'mindAnswer') {
@@ -240,8 +269,8 @@ function handleGlobalKeydown(ev) {
     if (key === 'c') { ev.preventDefault(); copySelected(); return; }
     if (key === 'escape') { ev.preventDefault(); exitListMode(); return; }
   }
-  if (key === 'p') { ev.preventDefault(); const prayBtn = getElementById('prayBtn'); if (prayBtn) prayBtn.click(); return; }
-  if (key === 'r') { ev.preventDefault(); const readBtn = getElementById('readBtn'); if (readBtn) readBtn.click(); return; }
+  if (key === 'p') { ev.preventDefault(); if (window.isPrayerActive && window.isPrayerActive()) { if (window.cancelPrayer) window.cancelPrayer(); } else { if (window.startPrayer) window.startPrayer(); } return; }
+  if (key === 'r') { ev.preventDefault(); if (window.showReadingModal) window.showReadingModal(); return; }
   if (key === 's') { ev.preventDefault(); const exStart = getElementById('exStart'); if (exStart) exStart.click(); return; }
   if (key === 'j') { ev.preventDefault(); const intent = getElementById('intent'); if (intent) focusElement(intent); return; }
   if (key === 'i') { ev.preventDefault(); const intent = getElementById('intent'); if (intent) focusElement(intent); return; }

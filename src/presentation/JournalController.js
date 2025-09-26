@@ -59,6 +59,82 @@ function setupIntentHandling() {
     intent.value = saved;
   }
   
+  // Add keyboard event listener for Cmd+Enter to save intent
+  addEventListener(intent, 'keydown', handleIntentKeydown);
+}
+
+/**
+ * Handle intent textarea keydown events
+ * @param {KeyboardEvent} ev - Keyboard event
+ */
+function handleIntentKeydown(ev) {
+  if (ev.key === 'Enter' && (ev.metaKey || ev.ctrlKey)) {
+    ev.preventDefault();
+    handleSaveIntent();
+  } else if (ev.key === 'x' && !ev.metaKey && !ev.ctrlKey && !ev.altKey) {
+    ev.preventDefault();
+    handleClearIntent();
+  }
+}
+
+/**
+ * Handle intent saving
+ */
+function handleSaveIntent() {
+  const intent = getElementById('intent');
+  if (!intent) return;
+  
+  const text = (intent.value || '').trim();
+  
+  if (text) {
+    // Save to journal entry
+    saveJournalEntry(text);
+    
+    // Save current intent text
+    saveCurrentIntentText(text);
+    
+    // Show saved feedback
+    const savedEl = getElementById('intentSaved');
+    if (savedEl) {
+      savedEl.style.display = 'block';
+      setTimeout(() => {
+        savedEl.style.display = 'none';
+      }, 2000);
+    }
+    
+    // Clear and blur textarea
+    intent.value = '';
+    clearCurrentIntentText();
+    intent.blur();
+    
+    // Play success sound
+    playSuccessBeep();
+    
+    // Refresh journal display
+    renderJournalEntries();
+    highlightNewEntry();
+  }
+}
+
+/**
+ * Handle intent clearing
+ */
+function handleClearIntent() {
+  const intent = getElementById('intent');
+  if (!intent) return;
+  
+  // Clear textarea
+  intent.value = '';
+  clearCurrentIntentText();
+  
+  // Hide saved feedback
+  const savedEl = getElementById('intentSaved');
+  if (savedEl) {
+    savedEl.style.display = 'none';
+  }
+  
+  // Focus back to textarea
+  intent.focus();
 }
 
 

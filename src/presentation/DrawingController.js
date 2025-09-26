@@ -11,24 +11,33 @@ import { CANVAS_CONFIG } from '../shared/Constants.js';
  * Initialize drawing functionality
  */
 export function initializeDrawing() {
+  console.log('DrawingController: initializeDrawing called');
   setupDrawingModal();
   setupDrawingControls();
+  console.log('DrawingController: initialization complete');
 }
 
 /**
  * Setup drawing modal
  */
 function setupDrawingModal() {
+  console.log('DrawingController: setupDrawingModal called');
   const openBtn = getElementById('doodleBtn');
   const modal = getElementById('doodleModal');
   const closeBtn = getElementById('doodleClose');
   
+  console.log('DrawingController: doodleBtn found:', !!openBtn);
+  console.log('DrawingController: doodleModal found:', !!modal);
+  console.log('DrawingController: doodleClose found:', !!closeBtn);
+  
   if (openBtn) {
     addEventListener(openBtn, 'click', showDrawingModal);
+    console.log('DrawingController: doodle button click handler added');
   }
   
   if (closeBtn) {
     addEventListener(closeBtn, 'click', hideDrawingModal);
+    console.log('DrawingController: doodle close button click handler added');
   }
   
   // Modal keydown handler attached to document (like original)
@@ -36,6 +45,7 @@ function setupDrawingModal() {
   
   // Listen for theme changes
   setupThemeListener();
+  console.log('DrawingController: setupDrawingModal complete');
 }
 
 /**
@@ -80,9 +90,13 @@ let mouseY = 0;
 /**
  * Show drawing modal
  */
-function showDrawingModal() {
+export function showDrawingModal() {
+  console.log('DrawingController: showDrawingModal called');
   const modal = getElementById('doodleModal');
-  if (!modal) return;
+  if (!modal) {
+    console.log('DrawingController: doodleModal not found');
+    return;
+  }
   
   addClass(modal, 'show');
   // Remove aria-hidden when modal is shown to allow focus
@@ -119,7 +133,7 @@ function showDrawingModal() {
 /**
  * Hide drawing modal
  */
-function hideDrawingModal() {
+export function hideDrawingModal() {
   const modal = getElementById('doodleModal');
   if (modal) {
     removeClass(modal, 'show');

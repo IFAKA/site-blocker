@@ -133,7 +133,7 @@ function setupChineseControls() {
 /**
  * Show Chinese modal
  */
-async function showChineseModal() {
+export async function showChineseModal() {
   const modal = getElementById('chineseModal');
   if (!modal) return;
   
