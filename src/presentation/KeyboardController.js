@@ -5,6 +5,8 @@
 
 import { getElementById, addEventListener, focusElement, blurElement, querySelector, querySelectorAll, scrollIntoView } from '../infrastructure/UI.js';
 import { KEYBOARD_SHORTCUTS } from '../shared/Constants.js';
+import { deleteJournalEntry } from '../application/JournalService.js';
+import { clearJournalEntries as clearJournalEntriesUI } from './JournalController.js';
 import { handleMirrorKeydown } from './MirrorController.js';
 import { hideShortcutsModal, showShortcutsModal } from './ShortcutsController.js';
 import { handleModalKeydown, getShortcutsContext } from './ModalManager.js';
@@ -148,6 +150,92 @@ function moveSelection(delta) {
   clearSelection();
   items[selected].classList.add('selected');
   ensureVisible(items[selected]);
+}
+
+function getSelectedAt() {
+  const items = getEntries();
+  if (!items.length || selected < 0 || selected >= items.length) return '';
+  const node = items[selected];
+  return node.getAttribute('data-at') || '';
+}
+
+function showJournalDeleteConfirmListMode(onConfirm) {
+  if (document.getElementById('journalConfirmModal')) return;
+  const overlay = document.createElement('div');
+  overlay.id = 'journalConfirmModal';
+  overlay.style.position = 'fixed';
+  overlay.style.top = '0';
+  overlay.style.left = '0';
+  overlay.style.width = '100%';
+  overlay.style.height = '100%';
+  overlay.style.background = 'rgba(0,0,0,0.7)';
+  overlay.style.display = 'flex';
+  overlay.style.alignItems = 'center';
+  overlay.style.justifyContent = 'center';
+  overlay.style.zIndex = '10001';
+
+  const box = document.createElement('div');
+  box.style.background = '#0b1220';
+  box.style.border = '1px solid #334155';
+  box.style.borderRadius = '12px';
+  box.style.padding = '20px';
+  box.style.textAlign = 'center';
+  box.style.color = '#e5e7eb';
+  box.style.maxWidth = '320px';
+  box.style.boxShadow = '0 20px 60px rgba(0,0,0,0.5)';
+  box.innerHTML = `
+    <div style="margin-bottom: 16px; font-weight: 600;">Delete this journal entry?</div>
+    <div style="margin-bottom: 16px; font-size: 0.9rem; color: #94a3b8;">Press Y to confirm, N to cancel</div>
+    <div style="display: flex; gap: 8px; justify-content: center;">
+      <button id="journalConfirmNo" style="background: #334155; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">No</button>
+      <button id="journalConfirmYes" style="background: #dc2626; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Yes</button>
+    </div>
+  `;
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  const cleanup = () => {
+    if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    document.removeEventListener('keydown', keyHandler, true);
+  };
+
+  const confirm = () => { cleanup(); onConfirm && onConfirm(); };
+  const keyHandler = (e) => {
+    const k = (e.key || '').toLowerCase();
+    if (k === 'y') { e.preventDefault(); e.stopPropagation(); confirm(); }
+    else if (k === 'n' || k === 'q' || k === 'escape') { e.preventDefault(); e.stopPropagation(); cleanup(); }
+  };
+  document.addEventListener('keydown', keyHandler, true);
+  box.querySelector('#journalConfirmYes')?.addEventListener('click', confirm);
+  box.querySelector('#journalConfirmNo')?.addEventListener('click', cleanup);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) cleanup(); });
+}
+
+function deleteSelectedInListMode() {
+  const items = getEntries();
+  if (!items.length || selected < 0) return;
+  const at = getSelectedAt();
+  if (!at) return;
+
+  showJournalDeleteConfirmListMode(() => {
+    deleteJournalEntry(at);
+    // Update DOM list
+    const node = items[selected];
+    const parent = node && node.parentNode;
+    if (parent) parent.removeChild(node);
+    const remaining = getEntries();
+    if (!remaining.length) {
+      // Show empty state message
+      try { clearJournalEntriesUI(); } catch {}
+      exitListMode();
+      return;
+    }
+    // Keep selection index valid and re-highlight
+    selected = Math.min(selected, remaining.length - 1);
+    clearSelection();
+    remaining[selected].classList.add('selected');
+    ensureVisible(remaining[selected]);
+  });
 }
 
 /**
@@ -325,6 +413,7 @@ function handleGlobalKeydown(ev) {
     if (key === 'j') { ev.preventDefault(); moveSelection(1); return; }
     if (key === 'k') { ev.preventDefault(); moveSelection(-1); return; }
     if (key === 'c') { ev.preventDefault(); copySelected(); return; }
+    if (key === 'd') { ev.preventDefault(); deleteSelectedInListMode(); return; }
     if (key === 'escape') { ev.preventDefault(); exitListMode(); return; }
   }
   if (key === 'p') { ev.preventDefault(); if (window.isPrayerActive && window.isPrayerActive()) { if (window.cancelPrayer) window.cancelPrayer(); } else { if (window.startPrayer) window.startPrayer(); } return; }
