@@ -435,7 +435,8 @@ function handleGlobalKeydown(ev) {
   if (key === 'l') { ev.preventDefault(); enterListMode(); return; }
   if (key === 'd') { ev.preventDefault(); if (window.showDoodleModal) window.showDoodleModal(); return; }
   if (key === 'e') { ev.preventDefault(); if (window.showEyeHealthModal) window.showEyeHealthModal(); return; }
-  if (key === 'm') { ev.preventDefault(); if (window.showMindModal) window.showMindModal(); return; }
+  if (key === 'm') { ev.preventDefault(); if (window.showBrainTrainingModal) window.showBrainTrainingModal(); return; }
+  if (key === 'b') { ev.preventDefault(); if (window.showBrainTrainingModal) window.showBrainTrainingModal(); return; }
   if (key === 'c') { ev.preventDefault(); if (window.showChineseModal) window.showChineseModal(); return; }
   if (key === 'v') { ev.preventDefault(); if (window.showMirrorModal) window.showMirrorModal(); return; }
   if (key === 'g') { ev.preventDefault(); if (window.focusGallery) window.focusGallery(); return; }

@@ -23,6 +23,9 @@ const modalCloseHandlers = {
   'mindModal': () => {
     if (window.hideMindModal) window.hideMindModal();
   },
+  'brainTrainingModal': () => {
+    if (window.hideBrainTrainingModal) window.hideBrainTrainingModal();
+  },
   'chineseModal': () => {
     if (window.hideChineseModal) window.hideChineseModal();
   },
@@ -46,6 +49,7 @@ const modalContextMap = {
   'doodleModal': 'drawing',
   'eyeHealthModal': 'eyeHealth',
   'mindModal': 'mind',
+  'brainTrainingModal': 'brainTraining',
   'chineseModal': 'chinese',
   'mirrorModal': 'mirror',
   'galleryModal': 'gallery',

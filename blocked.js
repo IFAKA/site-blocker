@@ -29,6 +29,7 @@ import { initializeReading, cancelReading, showReadingModal } from './src/presen
 import { initializeDrawing, resetDrawingState, showDrawingModal, hideDrawingModal } from './src/presentation/DrawingController.js';
 import { initializeEyeHealth, showEyeHealthModal, hideEyeHealthModal } from './src/presentation/EyeHealthController.js';
 import { initializeMind, showMindModal, hideMindModal } from './src/presentation/MindController.js';
+import { initializeBrainTraining, showBrainTrainingModal, hideBrainTrainingModal } from './src/presentation/BrainTrainingController.js';
 import { initializeChinese, getChineseModal, isChineseModalOpen, resetChineseModal, showChineseModal } from './src/presentation/ChineseController.js';
 import { initializeMirror, resetMirrorModal, showMirrorModal } from './src/presentation/MirrorController.js';
 import { initializeKeyboardShortcuts } from './src/presentation/KeyboardController.js';
@@ -100,6 +101,10 @@ let galleryItems = [];
     console.log('Initializing mind exercises...');
     initializeMind();
     console.log('Mind exercises initialized');
+    
+    console.log('Initializing brain training...');
+    initializeBrainTraining();
+    console.log('Brain training initialized');
     
     console.log('Initializing Chinese learning...');
     initializeChinese();
@@ -241,6 +246,8 @@ let galleryItems = [];
   
   window.hideEyeHealthModal = hideEyeHealthModal;
   window.hideMindModal = hideMindModal;
+  window.showBrainTrainingModal = showBrainTrainingModal;
+  window.hideBrainTrainingModal = hideBrainTrainingModal;
   
   window.hideChineseModal = () => {
     const modal = getElementById('chineseModal');
@@ -1043,12 +1050,12 @@ function setupProgressCardClickHandlers() {
       showExerciseModal();
     });
   }
-  // Mind Exercises progress card
-  const mindProgressCard = getElementById('mindProgressCard');
-  if (mindProgressCard) {
-    addEventListener(mindProgressCard, 'click', () => {
-      console.log('Mind progress card clicked');
-      showMindModal();
+  // Brain Training progress card
+  const brainTrainingProgressCard = getElementById('brainTrainingProgressCard');
+  if (brainTrainingProgressCard) {
+    addEventListener(brainTrainingProgressCard, 'click', () => {
+      console.log('Brain Training progress card clicked');
+      showBrainTrainingModal();
     });
   }
   

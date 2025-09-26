@@ -56,6 +56,7 @@ export function showShortcutsModal(type = 'global') {
     drawing: 'Drawing Modal Shortcuts',
     eyeHealth: 'Eye Health Modal Shortcuts',
     mind: 'Mind Exercises Modal Shortcuts',
+    brainTraining: 'Brain Training Modal Shortcuts',
     chinese: 'Chinese Learning Modal Shortcuts',
     mirror: 'Mirror Modal Shortcuts',
     gallery: 'Gallery Management Shortcuts',
@@ -101,7 +102,7 @@ function getShortcutsContent(type) {
           <div><strong>l</strong> - List mode</div>
           <div><strong>d</strong> - Drawing</div>
           <div><strong>e</strong> - Eye health</div>
-          <div><strong>m</strong> - Mind exercises</div>
+          <div><strong>m</strong> - Brain training</div>
           <div><strong>c</strong> - Chinese learning</div>
           <div><strong>v</strong> - Mirror</div>
           <div><strong>q</strong> - Close modals</div>
@@ -211,6 +212,45 @@ function getShortcutsContent(type) {
           <div><strong>s</strong> - Start/stop session</div>
           <div><strong>space</strong> - Start session</div>
           <div><strong>enter</strong> - Submit answer</div>
+          <div><strong>escape</strong> - Unfocus input</div>
+        </div>
+      </div>
+    `,
+    
+    brainTraining: `
+      <div style="margin-bottom: 20px;">
+        <h4 style="margin: 0 0 12px 0; font-size: 0.9rem; color: #cbd5e1; font-weight: 600;">Brain Training Session Controls</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; color: #64748b;">
+          <div><strong>s</strong> - Start/stop session</div>
+          <div><strong>space</strong> - Start session</div>
+          <div><strong>r</strong> - Reset session</div>
+          <div><strong>q</strong> - Close modal</div>
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <h4 style="margin: 0 0 12px 0; font-size: 0.9rem; color: #cbd5e1; font-weight: 600;">Exercise Navigation</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; color: #64748b;">
+          <div><strong>n</strong> - Skip exercise</div>
+          <div><strong>h</strong> - Show hint</div>
+          <div><strong>i</strong> - Focus answer input</div>
+          <div><strong>enter</strong> - Submit answer</div>
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <h4 style="margin: 0 0 12px 0; font-size: 0.9rem; color: #cbd5e1; font-weight: 600;">Memory Matrix</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; color: #64748b;">
+          <div><strong>1-9</strong> - Select matrix cell</div>
+          <div><strong>space</strong> - Confirm selection</div>
+          <div><strong>escape</strong> - Cancel selection</div>
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <h4 style="margin: 0 0 12px 0; font-size: 0.9rem; color: #cbd5e1; font-weight: 600;">General</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; color: #64748b;">
+          <div><strong>?</strong> - Show shortcuts</div>
           <div><strong>escape</strong> - Unfocus input</div>
         </div>
       </div>

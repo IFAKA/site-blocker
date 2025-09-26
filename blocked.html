@@ -93,21 +93,21 @@
                     </div>
                   </div>
                   
-                  <!-- Mind Exercises Progress -->
-                  <div class="progress-card" id="mindProgressCard" style="padding: 16px; background: #1e293b; border-radius: 8px; border: 1px solid #475569;">
+                  <!-- Brain Training Progress -->
+                  <div class="progress-card" id="brainTrainingProgressCard" style="padding: 16px; background: #1e293b; border-radius: 8px; border: 1px solid #475569;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                       <h4 style="margin: 0; color: #10b981; font-size: 1rem;">🧠 Brain Training</h4>
-                      <div class="progress-stats" id="mindProgressStats" style="font-size: 0.8rem; color: #94a3b8;">
-                        <span id="mindSessionsCount">0 sessions</span>
+                      <div class="progress-stats" id="brainTrainingProgressStats" style="font-size: 0.8rem; color: #94a3b8;">
+                        <span id="brainTrainingSessionsCount">0 sessions</span>
                       </div>
                     </div>
-                    <div class="progress-chart" id="mindProgressChart" style="height: 60px; background: #0f172a; border-radius: 4px; position: relative; overflow: hidden;">
+                    <div class="progress-chart" id="brainTrainingProgressChart" style="height: 60px; background: #0f172a; border-radius: 4px; position: relative; overflow: hidden;">
                       <div class="chart-placeholder" style="display: flex; align-items: center; justify-content: center; height: 100%; color: #64748b; font-size: 0.8rem;">
                         Complete sessions to see your progress
                       </div>
                     </div>
-                    <div class="progress-summary" id="mindProgressSummary" style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1;">
-                      <span id="mindBestScore">Best: 0</span> • <span id="mindAvgScore">Avg: 0</span>
+                    <div class="progress-summary" id="brainTrainingProgressSummary" style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1;">
+                      <span id="brainTrainingBestScore">Best: 0</span> • <span id="brainTrainingAvgScore">Avg: 0</span>
                     </div>
                   </div>
                   
@@ -358,52 +358,108 @@
         </div>
       </div>
     </div>
-    <!-- Mind Exercise modal -->
-    <div id="mindModal" class="modal" aria-hidden="true">
-      <div class="panel">
-        <div style="display:flex; justify-content: space-between; align-items: center;">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <h3>Mind Exercises</h3>
-            <button class="btn ghost" id="mindShortcutsBtn" style="padding: 4px 8px; font-size: 0.8rem;">?</button>
+    <!-- Brain Training modal -->
+    <div id="brainTrainingModal" class="modal" aria-hidden="true">
+      <div class="panel brain-training-panel">
+        <div class="brain-training-header">
+          <div class="brain-training-title">
+            <h3>🧠 Brain Training</h3>
+            <div class="brain-training-subtitle">Challenge your cognitive abilities</div>
           </div>
-          <button class="btn ghost" id="mindClose">Close</button>
+          <div class="brain-training-actions">
+            <button class="btn ghost" id="brainTrainingShortcutsBtn" style="padding: 6px 10px; font-size: 0.8rem; border-radius: 6px;">?</button>
+            <button class="btn ghost" id="brainTrainingClose" style="padding: 8px 16px;">Close</button>
+          </div>
         </div>
-        <div class="mind-content">
-          <div class="mind-stats" id="mindStats"></div>
-          <div class="mind-exercise">
-            <div class="mind-header">
-              <div class="mind-category" id="mindCategory">Category</div>
-              <div class="mind-difficulty" id="mindDifficulty">Difficulty</div>
-            </div>
-            <div class="mind-question" id="mindQuestion">Press Start to begin</div>
-            <div class="mind-matrix" id="mindMatrix" style="display: none;"></div>
-            <div class="mind-answer-section">
-              <input type="text" id="mindAnswer" placeholder="Your answer..." />
-              <button class="btn" id="mindSubmit">Submit</button>
-            </div>
-            <div class="mind-feedback" id="mindFeedback" style="display: none;"></div>
-            <div class="mind-explanation" id="mindExplanation" style="display: none;"></div>
-            <div class="mind-hint-display" id="mindHintDisplay" style="display: none;"></div>
-          </div>
-          <div class="mind-progress">
-            <div class="mind-progress-bar">
-              <div class="mind-progress-fill" id="mindProgressFill" style="width: 0%"></div>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
-            <div class="mind-time" id="mindTime">60s remaining</div>
-            <div class="mind-score" id="mindScore">Score: 0</div>
-            <div class="mind-progress-text" id="mindProgress">0 exercises completed</div>
+        
+        <div class="brain-training-content">
+          <!-- Session Overview -->
+          <div class="brain-training-overview" id="brainTrainingOverview">
+            <div class="overview-stats">
+              <div class="stat-card">
+                <div class="stat-value" id="brainTrainingSessions">0</div>
+                <div class="stat-label">Sessions</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value" id="brainTrainingBestScore">0</div>
+                <div class="stat-label">Best Score</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value" id="brainTrainingAvgScore">0</div>
+                <div class="stat-label">Avg Score</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value" id="brainTrainingStreak">0</div>
+                <div class="stat-label">Streak</div>
+              </div>
             </div>
           </div>
-          <div class="mind-controls" style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
-            <div style="display: flex; align-items: center; gap: 16px;">
-              <button class="btn" id="mindStart">Stop Session</button>
-              <button class="btn ghost" id="mindHint">Hint (H)</button>
-              <button class="btn ghost" id="mindSkip">Skip (N)</button>
-              <button class="btn ghost" id="mindReset">Reset (R)</button>
+
+          <!-- Exercise Display -->
+          <div class="brain-training-exercise" id="brainTrainingExercise">
+            <div class="exercise-header">
+              <div class="exercise-category" id="brainTrainingCategory">Ready to Start</div>
+              <div class="exercise-difficulty" id="brainTrainingDifficulty">Select Difficulty</div>
+            </div>
+            
+            <div class="exercise-content">
+              <div class="exercise-question" id="brainTrainingQuestion">
+                <div class="question-text">Press Start to begin your brain training session</div>
+                <div class="question-hint" id="brainTrainingHint" style="display: none;"></div>
+              </div>
+              
+              <!-- Memory Matrix Display -->
+              <div class="memory-matrix-container" id="brainTrainingMatrix" style="display: none;">
+                <div class="matrix-grid" id="brainTrainingMatrixGrid"></div>
+                <div class="matrix-timer" id="brainTrainingMatrixTimer">Memorize for 5 seconds...</div>
+              </div>
+              
+              <!-- Answer Input -->
+              <div class="exercise-answer" id="brainTrainingAnswerSection" style="display: none;">
+                <input type="text" id="brainTrainingAnswer" placeholder="Your answer..." autocomplete="off" />
+                <button class="btn primary" id="brainTrainingSubmit">Submit</button>
+              </div>
+              
+              <!-- Feedback Display -->
+              <div class="exercise-feedback" id="brainTrainingFeedback" style="display: none;"></div>
+              <div class="exercise-explanation" id="brainTrainingExplanation" style="display: none;"></div>
             </div>
           </div>
-          <div class="mind-results" id="mindResults" style="display: none;"></div>
+
+          <!-- Progress Tracking -->
+          <div class="brain-training-progress">
+            <div class="progress-header">
+              <div class="progress-info">
+                <span class="progress-time" id="brainTrainingTime">60s remaining</span>
+                <span class="progress-score" id="brainTrainingScore">Score: 0</span>
+              </div>
+              <div class="progress-exercises" id="brainTrainingProgress">0 exercises completed</div>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" id="brainTrainingProgressFill" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <!-- Session Controls -->
+          <div class="brain-training-controls">
+            <div class="control-group">
+              <button class="btn primary" id="brainTrainingStart">Start Session</button>
+              <button class="btn secondary" id="brainTrainingStop" style="display: none;">Stop Session</button>
+            </div>
+            <div class="control-group">
+              <button class="btn ghost" id="brainTrainingHint">Hint (H)</button>
+              <button class="btn ghost" id="brainTrainingSkip">Skip (N)</button>
+              <button class="btn ghost" id="brainTrainingReset">Reset (R)</button>
+            </div>
+          </div>
+
+          <!-- Session Results -->
+          <div class="brain-training-results" id="brainTrainingResults" style="display: none;">
+            <div class="results-header">
+              <h4>Session Complete!</h4>
+            </div>
+            <div class="results-content" id="brainTrainingResultsContent"></div>
+          </div>
         </div>
       </div>
     </div>

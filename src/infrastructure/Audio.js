@@ -328,3 +328,69 @@ export function playChineseCorrect() {
 export function playChineseIncorrect() {
   return playBeep(440, 200);
 }
+
+/**
+ * Play brain training start sound
+ * @returns {Promise<boolean>} Success status
+ */
+export function playBrainTrainingStart() {
+  return playBeep(660, 200);
+}
+
+/**
+ * Play brain training correct answer sound
+ * @returns {Promise<boolean>} Success status
+ */
+export function playBrainTrainingCorrect() {
+  return playBeep(880, 150).then(() => {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        playBeep(1100, 150).then(resolve);
+      }, 100);
+    });
+  });
+}
+
+/**
+ * Play brain training wrong answer sound
+ * @returns {Promise<boolean>} Success status
+ */
+export function playBrainTrainingWrong() {
+  return playBeep(440, 200);
+}
+
+/**
+ * Play brain training hint sound
+ * @returns {Promise<boolean>} Success status
+ */
+export function playBrainTrainingHint() {
+  return playBeep(550, 100);
+}
+
+/**
+ * Play brain training timer warning sound
+ * @returns {Promise<boolean>} Success status
+ */
+export function playBrainTrainingTimerWarning() {
+  return playBeep(330, 300);
+}
+
+/**
+ * Play brain training completion sound
+ * @returns {Promise<boolean>} Success status
+ */
+export function playBrainTrainingComplete() {
+  return playBeep(880, 200).then(() => {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        playBeep(1100, 200).then(() => {
+          return new Promise(resolve2 => {
+            setTimeout(() => {
+              playBeep(1320, 300).then(resolve2);
+            }, 150);
+          });
+        });
+      }, 150);
+    });
+  });
+}
