@@ -99,6 +99,18 @@ export function addJournalEntry(entry) {
 }
 
 /**
+ * Delete a journal entry by its timestamp key
+ * @param {string} at - ISO timestamp identifying the entry
+ * @returns {boolean} Success status
+ */
+export function deleteJournalEntryByAt(at) {
+  if (!at) return false;
+  const entries = getJournalEntries();
+  const filtered = Array.isArray(entries) ? entries.filter(e => e && e.at !== at) : [];
+  return saveJournalEntries(filtered);
+}
+
+/**
  * Get current intent from storage
  * @returns {string} Current intent text
  */

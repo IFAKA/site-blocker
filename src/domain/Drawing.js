@@ -67,28 +67,26 @@ export function calculateMousePosition(event, canvas, zoom, panX, panY) {
  * @param {number} canvasHeight - Canvas height
  * @returns {Object} New zoom and pan values
  */
-export function calculateZoomAdjustment(currentZoom, delta, centerX, centerY, canvasWidth, canvasHeight) {
+export function calculateZoomAdjustment(currentZoom, delta, centerX, centerY, canvasWidth, canvasHeight, currentPanX, currentPanY) {
   const newZoom = Math.max(0.1, Math.min(5, currentZoom + delta));
   
   if (newZoom === currentZoom) {
-    return { zoom: currentZoom, panX: 0, panY: 0 };
+    return { zoom: currentZoom, panX: currentPanX, panY: currentPanY };
   }
   
-  // If no center point provided, use canvas center
-  const zoomCenterX = centerX !== null ? centerX : canvasWidth / 2;
-  const zoomCenterY = centerY !== null ? centerY : canvasHeight / 2;
+  // If no center point provided, use canvas center (screen coords relative to canvas)
+  const Sx = centerX !== null ? centerX : canvasWidth / 2;
+  const Sy = centerY !== null ? centerY : canvasHeight / 2;
   
-  // Calculate zoom factor
-  const zoomFactor = newZoom / currentZoom;
-  
-  // Adjust pan to zoom at the specified point
-  const newPanX = zoomCenterX - (zoomCenterX - 0) * zoomFactor;
-  const newPanY = zoomCenterY - (zoomCenterY - 0) * zoomFactor;
+  // Maintain the world point under the cursor: S = W*z + pan
+  // W = (S - pan)/z; require S = W*z' + pan' => pan' = S - ((S - pan)/z)*z'
+  const panXPrime = Sx - ((Sx - currentPanX) / currentZoom) * newZoom;
+  const panYPrime = Sy - ((Sy - currentPanY) / currentZoom) * newZoom;
   
   return {
     zoom: newZoom,
-    panX: newPanX,
-    panY: newPanY
+    panX: panXPrime,
+    panY: panYPrime
   };
 }
 

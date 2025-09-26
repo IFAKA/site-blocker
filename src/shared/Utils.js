@@ -244,7 +244,23 @@ export function isDarkTheme() {
  * @returns {Object} Theme colors object
  */
 export function getThemeColors() {
-  const isDark = isDarkTheme();
+  const modeKey = 'site-blocker:theme:mode';
+  let mode = null;
+  try {
+    // Try to read persisted theme mode: 'device' | 'light' | 'dark'
+    const raw = localStorage.getItem(modeKey);
+    mode = raw ? JSON.parse(raw) : null;
+  } catch {}
+  // Resolve whether dark should be used based on mode
+  let isDark;
+  if (mode === 'light') {
+    isDark = false;
+  } else if (mode === 'dark') {
+    isDark = true;
+  } else {
+    // default to device preference
+    isDark = isDarkTheme();
+  }
   const colors = isDark ? {
     background: '#1a1a1a',
     stroke: '#ffffff'
@@ -254,7 +270,7 @@ export function getThemeColors() {
   };
   
   // Debug log to verify theme detection
-  console.log(`Theme detection: ${isDark ? 'dark' : 'light'} theme, colors:`, colors);
+  console.log(`Theme detection: ${isDark ? 'dark' : 'light'} theme (mode=${mode || 'device'}), colors:`, colors);
   
   return colors;
 }

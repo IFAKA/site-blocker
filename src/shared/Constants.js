@@ -13,7 +13,8 @@ export const STORAGE_KEYS = {
   BOOK_META: 'site-blocker:reader:book:len',
   READER_POINTER: 'site-blocker:reader:pointer',
   READER_WPM: 'site-blocker:reader:wpm',
-  CHINESE_PROGRESS: 'site-blocker:chinese:progress'
+  CHINESE_PROGRESS: 'site-blocker:chinese:progress',
+  THEME_MODE: 'site-blocker:theme:mode'
 };
 
 /**

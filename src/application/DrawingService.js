@@ -42,7 +42,9 @@ export function initializeDrawingCanvas(canvas, width, height) {
   return {
     ...state,
     ctx,
-    canvas
+    canvas,
+    // Track current theme to allow proper inversion on theme changes
+    themeIsDark: (themeColors.background || '').toLowerCase() === '#1a1a1a'
   };
 }
 
@@ -332,7 +334,9 @@ export function adjustCanvasZoom(state, delta, centerX = null, centerY = null) {
     centerX, 
     centerY, 
     state.width, 
-    state.height
+    state.height,
+    state.panX,
+    state.panY
   );
   
   if (adjustment.zoom === state.zoom) return state;
@@ -494,10 +498,47 @@ export function updateCanvasTheme(state) {
   
   // Get current theme colors
   const themeColors = getThemeColors();
-  
+
+  const isDarkNow = (themeColors.background || '').toLowerCase() === '#1a1a1a';
+
+  // If theme changed since last time, invert existing pixels so drawing remains visible
+  if (typeof state.themeIsDark === 'boolean' && state.themeIsDark !== isDarkNow) {
+    try {
+      const { width, height } = state.canvas;
+      const imageData = state.ctx.getImageData(0, 0, width, height);
+      const data = imageData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        // Invert RGB, keep alpha
+        data[i] = 255 - data[i];     // R
+        data[i+1] = 255 - data[i+1]; // G
+        data[i+2] = 255 - data[i+2]; // B
+      }
+      state.ctx.putImageData(imageData, 0, 0);
+    } catch (err) {
+      console.warn('Failed to invert canvas on theme change:', err);
+      // As a fallback, repaint background only (may obscure previous drawing)
+      state.ctx.save();
+      state.ctx.setTransform(1, 0, 0, 1, 0, 0);
+      state.ctx.globalCompositeOperation = 'destination-over';
+      state.ctx.fillStyle = themeColors.background;
+      state.ctx.fillRect(0, 0, state.canvas.width, state.canvas.height);
+      state.ctx.restore();
+    }
+  } else if (typeof state.themeIsDark !== 'boolean') {
+    // First-time call: ensure background exists under current pixels
+    state.ctx.save();
+    state.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    state.ctx.globalCompositeOperation = 'destination-over';
+    state.ctx.fillStyle = themeColors.background;
+    state.ctx.fillRect(0, 0, state.canvas.width, state.canvas.height);
+    state.ctx.restore();
+  }
+
   // Update stroke color for new drawings
   state.ctx.strokeStyle = themeColors.stroke;
-  
+  // Update flag
+  state.themeIsDark = isDarkNow;
+
   return state;
 }
 

@@ -3,8 +3,8 @@
  * Handles journal interface and user interactions
  */
 
-import { saveJournalEntry, loadJournalEntries, getCurrentIntentText, saveCurrentIntentText, clearCurrentIntentText } from '../application/JournalService.js';
-import { getElementById, updateTextContent, updateInnerHTML, addClass, removeClass, addEventListener } from '../infrastructure/UI.js';
+import { saveJournalEntry, loadJournalEntries, deleteJournalEntry, getCurrentIntentText, saveCurrentIntentText, clearCurrentIntentText } from '../application/JournalService.js';
+import { getElementById, updateTextContent, updateInnerHTML, addClass, removeClass, addEventListener, createElement, removeEventListener } from '../infrastructure/UI.js';
 import { playSuccessBeep } from '../infrastructure/Audio.js';
 
 /**
@@ -15,6 +15,7 @@ export function initializeJournal(from) {
   setupContextDisplay(from);
   setupIntentHandling();
   setupJournalDisplay();
+  setupJournalKeyHandling();
 }
 
 /**
@@ -160,7 +161,7 @@ function renderJournalEntries() {
   }
   
   const html = entries.map(entry => 
-    `<div class="entry" data-index="${entries.indexOf(entry)}">
+    `<div class="entry" data-at="${entry.at}">
       <small>${entry.displayTime}${entry.displayFrom}</small><br>${entry.displayText}
     </div>`
   ).join('');
@@ -205,4 +206,114 @@ export function clearJournalEntries() {
     updateTextContent(box, 'No entries yet.');
   }
   return true;
+}
+
+// --- Journal deletion with confirmation ---
+let selectedJournalAt = '';
+let journalKeydownHandler = null;
+let isJournalHovered = false;
+
+function setupJournalKeyHandling() {
+  const box = getElementById('journalEntries');
+  if (!box) return;
+
+  // Click to select an entry
+  addEventListener(box, 'click', (e) => {
+    const entryEl = e.target.closest('.entry');
+    if (!entryEl) return;
+    selectJournalEntry(entryEl);
+  });
+
+  // Track hover state to scope shortcut
+  addEventListener(box, 'mouseenter', () => { isJournalHovered = true; });
+  addEventListener(box, 'mouseleave', () => { isJournalHovered = false; });
+
+  // Auto-select entry on hover so 'd' works without click
+  addEventListener(box, 'mousemove', (e) => {
+    const entryEl = e.target && e.target.closest ? e.target.closest('.entry') : null;
+    if (!entryEl) return;
+    // Only update selection if hovered a different entry
+    const at = entryEl.getAttribute('data-at') || '';
+    if (at && at !== selectedJournalAt) {
+      selectJournalEntry(entryEl);
+    }
+  });
+
+  // Keydown handler to capture 'd' for delete when a journal entry is selected
+  journalKeydownHandler = (ev) => {
+    const key = (ev.key || '').toLowerCase();
+    // Only act if journal area is active: hovered or focus within
+    const activeEl = document.activeElement;
+    const boxEl = getElementById('journalEntries');
+    const focusWithin = !!(boxEl && activeEl && boxEl.contains(activeEl));
+    if (!isJournalHovered && !focusWithin) return;
+    if (!selectedJournalAt) return;
+
+    // If a journal is selected and user presses 'd', open confirm
+    if (key === 'd' && !ev.metaKey && !ev.ctrlKey && !ev.altKey) {
+      // Prevent the global 'd' (doodle) shortcut
+      ev.preventDefault();
+      ev.stopPropagation();
+      showJournalDeleteConfirm(selectedJournalAt);
+      return;
+    }
+  };
+  addEventListener(document, 'keydown', journalKeydownHandler, { capture: true });
+}
+
+function selectJournalEntry(entryEl) {
+  const box = getElementById('journalEntries');
+  if (!box || !entryEl) return;
+  // Clear previous selection
+  Array.from(box.querySelectorAll('.entry.selected')).forEach(el => el.classList.remove('selected'));
+  entryEl.classList.add('selected');
+  selectedJournalAt = entryEl.getAttribute('data-at') || '';
+}
+
+function showJournalDeleteConfirm(at) {
+  if (!at) return;
+  // Avoid multiple
+  if (document.getElementById('journalConfirmModal')) return;
+
+  const overlay = createElement('div', {
+    id: 'journalConfirmModal',
+    style: {
+      position: 'fixed', top: '0', left: '0', width: '100%', height: '100%',
+      background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: '10001'
+    }
+  });
+  const box = createElement('div', { style: { background: '#0b1220', border: '1px solid #334155', borderRadius: '12px', padding: '20px', textAlign: 'center', color: '#e5e7eb', maxWidth: '320px', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' } });
+  box.innerHTML = `
+    <div style="margin-bottom: 16px; font-weight: 600;">Delete this journal entry?</div>
+    <div style="margin-bottom: 16px; font-size: 0.9rem; color: #94a3b8;">Press Y to confirm, N to cancel</div>
+    <div style="display: flex; gap: 8px; justify-content: center;">
+      <button id="journalConfirmNo" style="background: #334155; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">No</button>
+      <button id="journalConfirmYes" style="background: #dc2626; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Yes</button>
+    </div>
+  `;
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  const cleanup = () => {
+    if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    removeEventListener(document, 'keydown', keyHandler, { capture: true });
+  };
+
+  const confirm = () => {
+    deleteJournalEntry(at);
+    // Rerender and clear selection
+    renderJournalEntries();
+    selectedJournalAt = '';
+    cleanup();
+  };
+
+  const keyHandler = (e) => {
+    const k = (e.key || '').toLowerCase();
+    if (k === 'y') { e.preventDefault(); e.stopPropagation(); confirm(); }
+    else if (k === 'n' || k === 'q' || k === 'escape') { e.preventDefault(); e.stopPropagation(); cleanup(); }
+  };
+  addEventListener(document, 'keydown', keyHandler, { capture: true });
+  addEventListener(box.querySelector('#journalConfirmYes'), 'click', confirm);
+  addEventListener(box.querySelector('#journalConfirmNo'), 'click', cleanup);
+  addEventListener(overlay, 'click', (e) => { if (e.target === overlay) cleanup(); });
 }

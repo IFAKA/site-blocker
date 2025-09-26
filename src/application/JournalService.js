@@ -4,7 +4,7 @@
  */
 
 import { createJournalEntry, validateJournalEntry, sortJournalEntries, formatJournalEntry } from '../domain/Journal.js';
-import { getJournalEntries, saveJournalEntries, addJournalEntry, getCurrentIntent, saveCurrentIntent, clearCurrentIntent } from '../infrastructure/Storage.js';
+import { getJournalEntries, saveJournalEntries, addJournalEntry, deleteJournalEntryByAt, getCurrentIntent, saveCurrentIntent, clearCurrentIntent } from '../infrastructure/Storage.js';
 
 /**
  * Save a journal entry
@@ -127,4 +127,13 @@ export function getJournalStatistics() {
     thisWeek: thisWeekEntries.length,
     lastEntry: entries.length > 0 ? entries[0].at : null
   };
+}
+
+/**
+ * Delete a journal entry by timestamp
+ * @param {string} at - ISO timestamp of entry
+ * @returns {boolean} Success status
+ */
+export function deleteJournalEntry(at) {
+  return deleteJournalEntryByAt(at);
 }

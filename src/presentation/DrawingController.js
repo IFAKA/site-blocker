@@ -6,7 +6,8 @@
 import { initializeDrawingCanvas, startDrawingStroke, continueDrawingStroke, stopDrawingStroke, saveCanvasState, undoDrawingAction, redoDrawingAction, clearCanvas, adjustCanvasZoom, saveCanvasAsImage, copyCanvasToClipboard, saveDoodleToGallery, copyDoodleToClipboardAndSave, updateCanvasTheme, drawShapeStroke, finalizeShapeStroke } from '../application/DrawingService.js';
 import { getElementById, showElement, hideElement, addEventListener, removeEventListener, createElement, updateTextContent, addClass, removeClass } from '../infrastructure/UI.js';
 import { isTopModal } from './ModalManager.js';
-import { CANVAS_CONFIG } from '../shared/Constants.js';
+import { CANVAS_CONFIG, STORAGE_KEYS } from '../shared/Constants.js';
+import { getItem, setItem } from '../infrastructure/Storage.js';
 
 /**
  * Initialize drawing functionality
@@ -410,6 +411,19 @@ function handleModalKeydown(e) {
   if (key === 'c') {
     e.preventDefault();
     handleCopyCanvas();
+    return;
+  }
+  
+  // Theme mode cycle within doodle: device -> light -> dark
+  if (key === 'm') {
+    e.preventDefault();
+    const currentMode = getItem(STORAGE_KEYS.THEME_MODE, 'device');
+    const nextMode = currentMode === 'device' ? 'light' : (currentMode === 'light' ? 'dark' : 'device');
+    setItem(STORAGE_KEYS.THEME_MODE, nextMode);
+    if (drawingState) {
+      drawingState = updateCanvasTheme(drawingState);
+    }
+    showFeedback(`Theme: ${nextMode}`);
     return;
   }
   

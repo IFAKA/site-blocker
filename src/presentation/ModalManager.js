@@ -83,6 +83,16 @@ export function handleModalKeydown(ev) {
     return true;
   }
 
+  // If journal confirmation modal is open, let it consume keys and block globals
+  const journalConfirm = getElementById('journalConfirmModal');
+  if (journalConfirm && journalConfirm.parentNode) {
+    if (key === 'q' || key === 'escape') {
+      ev.preventDefault();
+      return true;
+    }
+    return true; // block other modal-level handling while confirmation is present
+  }
+
   // Check if delete confirmation modal is open - let gallery handler deal with it
   const deleteModal = getElementById('deleteConfirmModal');
   if (deleteModal && deleteModal.classList.contains('show')) {
