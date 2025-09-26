@@ -151,7 +151,19 @@ function getShortcutsContent(type) {
     
     drawing: `
       <div style="margin-bottom: 20px;">
-        <h4 style="margin: 0 0 12px 0; font-size: 0.9rem; color: #cbd5e1; font-weight: 600;">Drawing Modal Shortcuts</h4>
+        <h4 style="margin: 0 0 12px 0; font-size: 0.9rem; color: #cbd5e1; font-weight: 600;">Drawing Tools</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; color: #64748b;">
+          <div><strong>p</strong> - Pen tool</div>
+          <div><strong>e</strong> - Eraser tool</div>
+          <div><strong>1</strong> - Rectangle</div>
+          <div><strong>2</strong> - Diamond</div>
+          <div><strong>3</strong> - Circle</div>
+          <div><strong>a</strong> - Arrow</div>
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <h4 style="margin: 0 0 12px 0; font-size: 0.9rem; color: #cbd5e1; font-weight: 600;">Drawing Actions</h4>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; color: #64748b;">
           <div><strong>space</strong> - Hold to draw</div>
           <div><strong>z</strong> - Undo</div>
@@ -159,11 +171,20 @@ function getShortcutsContent(type) {
           <div><strong>r</strong> - Reset canvas</div>
           <div><strong>s</strong> - Save drawing</div>
           <div><strong>c</strong> - Copy drawing</div>
+          <div><strong>n</strong> - Name drawing</div>
+          <div><strong>m</strong> - Toggle theme</div>
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <h4 style="margin: 0 0 12px 0; font-size: 0.9rem; color: #cbd5e1; font-weight: 600;">Zoom & Navigation</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; color: #64748b;">
           <div><strong>+</strong> - Zoom in</div>
           <div><strong>-</strong> - Zoom out</div>
           <div><strong>⌘++</strong> - Zoom in fast</div>
           <div><strong>⌘+-</strong> - Zoom out fast</div>
-          <div><strong>escape</strong> - Close modal</div>
+          <div><strong>0</strong> - Reset zoom</div>
+          <div><strong>q</strong> - Close modal</div>
         </div>
       </div>
     `,
@@ -244,6 +265,7 @@ function getShortcutsContent(type) {
           <div><strong>g</strong> - Group selected</div>
           <div><strong>u</strong> - Ungroup selected</div>
           <div><strong>d</strong> - Delete selected</div>
+          <div><strong>r</strong> - Rename doodle</div>
           <div><strong>enter</strong> - View item/Enter group</div>
           <div><strong>escape</strong> - Exit focus</div>
           <div><strong>q</strong> - Exit focus</div>

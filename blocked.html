@@ -411,19 +411,38 @@
     <!-- Exercise modal -->
     <div id="exerciseModal" class="modal" aria-hidden="true">
       <div class="panel">
-        <div style="display:flex; justify-content: space-between; align-items: center;">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <h3>Workout</h3>
-            <button class="btn ghost" id="exerciseShortcutsBtn" style="padding: 4px 8px; font-size: 0.8rem;">?</button>
+        <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.2rem;">🏋️</span>
+              Workout
+            </h3>
+            <button class="btn ghost" id="exerciseShortcutsBtn" style="padding: 6px 10px; font-size: 0.8rem; border-radius: 6px;">?</button>
           </div>
-          <button class="btn ghost" id="exerciseClose">Close</button>
+          <button class="btn ghost" id="exerciseClose" style="padding: 8px 16px;">Close</button>
         </div>
         <div class="exercise" id="exerciseBoxModal">
-          <h3 id="exTitleModal">Exercise set</h3>
-          <div class="muted" id="exSubtitleModal"></div>
-          <div class="note" id="exNotesModal" style="margin-top: 6px"></div>
-          <div class="muted" id="exProgressModal" style="margin-top: 6px"></div>
-          <div style="display: flex; gap: 8px; margin-top: 10px">
+          <div class="exercise-set-info">
+            <div class="set-number" id="exTitleModal">Exercise set</div>
+            <div class="reps-info" id="exSubtitleModal"></div>
+          </div>
+          
+          <div class="exercise-progress" id="exerciseProgressContainer" style="display: none;">
+            <span style="font-size: 0.9rem; color: #94a3b8; min-width: 60px;">Progress</span>
+            <div class="exercise-progress-bar">
+              <div class="exercise-progress-fill" id="exerciseProgressFill" style="width: 0%;"></div>
+            </div>
+            <span id="exerciseProgressText" style="font-size: 0.9rem; color: #cbd5e1; min-width: 40px; text-align: right;">0%</span>
+          </div>
+          
+          <div class="note" id="exNotesModal"></div>
+          <div class="muted" id="exProgressModal"></div>
+          
+          <div class="exercise-status" id="exerciseStatus" style="display: none;">
+            <span id="exerciseStatusText">Ready to start</span>
+          </div>
+          
+          <div class="exercise-controls">
             <button class="btn" id="exStartModal">Start set</button>
             <button class="btn ghost" id="exSkipModal">Skip once</button>
             <button class="btn secondary" id="exResetModal">Reset cycle</button>

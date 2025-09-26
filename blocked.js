@@ -135,6 +135,8 @@ let galleryItems = [];
     console.log('showDoodleModal called');
     showDrawingModal();
   };
+  // Also expose drawing modal function directly so we can pass params
+  window.showDrawingModal = showDrawingModal;
   
   // Make eye health modal globally accessible
   window.showEyeHealthModal = () => {
@@ -262,8 +264,37 @@ let galleryItems = [];
   window.renderExercise = renderCurrentExercise;
   window.showExerciseModal = () => { console.log('showExerciseModal called'); showExerciseModal(); };
   window.hideExerciseModal = () => { console.log('hideExerciseModal called'); hideExerciseModal(); };
+  
+  // Initialize theme detection
+  initializeTheme();
   renderCurrentExercise();
 })();
+
+/**
+ * Initialize theme detection and apply appropriate colors
+ */
+function initializeTheme() {
+  // Check if user has a saved theme preference
+  const savedTheme = localStorage.getItem('site-blocker-theme');
+  
+  if (savedTheme) {
+    // Apply saved theme
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  } else {
+    // Use system preference
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+  }
+  
+  // Listen for system theme changes
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    if (!localStorage.getItem('site-blocker-theme')) {
+      document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+    }
+  });
+  
+  console.log('Theme initialized:', document.documentElement.getAttribute('data-theme'));
+}
 
 /**
  * Setup prayer button click handler (legacy support)
@@ -753,6 +784,116 @@ function updateDoodleGallery() {
     // Show 4 random doodles
     const shuffledDoodles = shuffleArray([...doodles]).slice(0, 4);
     
+    // Generate a set of unique random CSS filters (one per preview item)
+    function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+    const filterGenerators = [
+      // Monochrome-safe effects, stronger for line-art visibility
+      () => `contrast(${(Math.random() * 0.6 + 1.6).toFixed(2)})`,                    // 1.60 - 2.20
+      () => `brightness(${(Math.random() * 0.5 + 0.8).toFixed(2)})`,                  // 0.80 - 1.30
+      () => `invert(${randInt(40, 100)}%)`,                                           // 40% - 100%
+      () => `blur(${(Math.random() * 0.8 + 0.4).toFixed(1)}px)`,                      // 0.4 - 1.2px
+      () => `grayscale(100%) contrast(${(Math.random() * 0.7 + 1.4).toFixed(2)})`,    // strong contrast in pure B/W
+      () => `invert(100%) contrast(${(Math.random() * 0.5 + 1.4).toFixed(2)})`,       // inverted high-contrast
+      () => `brightness(${(Math.random() * 0.4 + 0.9).toFixed(2)}) contrast(${(Math.random() * 0.6 + 1.4).toFixed(2)})`
+    ];
+    const uniqueFilters = shuffleArray([...filterGenerators]).slice(0, shuffledDoodles.length).map(fn => fn());
+
+    // --- Multi-color line-art colorization helpers (for B/W doodles) ---
+    function hexToRgb(hex) {
+      const normalized = hex.replace('#', '');
+      const bigint = parseInt(normalized.length === 3
+        ? normalized.split('').map(c => c + c).join('')
+        : normalized, 16);
+      return { r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255 };
+    }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function interpolateColors(c1, c2, t) {
+      return {
+        r: Math.round(lerp(c1.r, c2.r, t)),
+        g: Math.round(lerp(c1.g, c2.g, t)),
+        b: Math.round(lerp(c1.b, c2.b, t))
+      };
+    }
+    function samplePalette(stops, t) {
+      if (stops.length === 1) return hexToRgb(stops[0]);
+      const pos = t * (stops.length - 1);
+      const i = Math.floor(pos);
+      const frac = pos - i;
+      const left = hexToRgb(stops[i]);
+      const right = hexToRgb(stops[Math.min(i + 1, stops.length - 1)]);
+      return interpolateColors(left, right, frac);
+    }
+    function colorizeLineArtDataUrl(src, targetSize, paletteStops) {
+      try {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = src;
+        return new Promise(resolve => {
+          img.onload = () => {
+            const maxDim = targetSize;
+            const ratio = Math.max(img.width, img.height) > 0 ? maxDim / Math.max(img.width, img.height) : 1;
+            const w = Math.max(1, Math.round(img.width * ratio));
+            const h = Math.max(1, Math.round(img.height * ratio));
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            const imageData = ctx.getImageData(0, 0, w, h);
+            const data = imageData.data;
+            for (let y = 0; y < h; y++) {
+              for (let x = 0; x < w; x++) {
+                const idx = (y * w + x) * 4;
+                const r = data[idx], g = data[idx + 1], b = data[idx + 2];
+                // Luminance to detect dark (line) pixels
+                const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+                if (lum < 200) { // treat darker-than-paper pixels as lines
+                  const t = (x + y) / (w + h); // diagonal gradient
+                  const { r: cr, g: cg, b: cb } = samplePalette(paletteStops, t);
+                  // Preserve perceived darkness to keep line structure
+                  const strength = 1 - (lum / 255); // darker -> stronger color
+                  data[idx] = Math.round(cr * strength);
+                  data[idx + 1] = Math.round(cg * strength);
+                  data[idx + 2] = Math.round(cb * strength);
+                  data[idx + 3] = 255;
+                } else {
+                  // Light background stays light
+                  data[idx] = 250; data[idx + 1] = 250; data[idx + 2] = 250; data[idx + 3] = 255;
+                }
+              }
+            }
+            ctx.putImageData(imageData, 0, 0);
+            resolve(canvas.toDataURL('image/png'));
+          };
+          img.onerror = () => resolve(src);
+        });
+      } catch (_) { return Promise.resolve(src); }
+    }
+    // Use ONLY project color variables (ignore success/warning/error)
+    function getCssVar(varName, fallback) {
+      try {
+        const val = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+        return val || fallback;
+      } catch (_) { return fallback; }
+    }
+    const accentPrimary = getCssVar('--accent-primary', '#3b82f6');
+    const accentSecondary = getCssVar('--accent-secondary', '#6366f1');
+    const textPrimary = getCssVar('--text-primary', '#1e293b');
+    const textInverse = getCssVar('--text-inverse', '#ffffff');
+    const borderPrimary = getCssVar('--border-primary', '#e2e8f0');
+    const borderSecondary = getCssVar('--border-secondary', '#cbd5e1');
+    const bgPrimary = getCssVar('--bg-primary', '#ffffff');
+    const bgTertiary = getCssVar('--bg-tertiary', '#f1f5f9');
+
+    const colorPalettes = [
+      [accentPrimary, accentSecondary, textInverse],
+      [textPrimary, accentPrimary, textInverse],
+      [accentSecondary, textPrimary, borderSecondary],
+      [accentPrimary, borderSecondary, textInverse],
+      [accentSecondary, borderPrimary, bgTertiary],
+      [textPrimary, borderSecondary, bgPrimary]
+    ];
+    const uniquePalettes = shuffleArray([...colorPalettes]).slice(0, shuffledDoodles.length);
+    
     shuffledDoodles.forEach((doodle, index) => {
       const previewItem = document.createElement('div');
       previewItem.style.cssText = `
@@ -778,6 +919,15 @@ function updateDoodleGallery() {
         object-fit: cover;
         border-radius: 6px;
       `;
+      // Apply a unique random filter to increase visual variety across items
+      img.style.filter = uniqueFilters[index] || 'none';
+
+      // Also try to colorize B/W line-art using a multi-stop gradient palette
+      // This is applied asynchronously; once ready, replace the img source
+      const palette = uniquePalettes[index] || colorPalettes[0];
+      colorizeLineArtDataUrl(doodle.imageData, 320, palette).then(coloredUrl => {
+        try { img.src = coloredUrl; } catch (_) {}
+      });
       
       previewItem.appendChild(img);
       previewGrid.appendChild(previewItem);
@@ -1089,17 +1239,14 @@ function createGroupElement(group, groupIndex) {
   preview.style.cssText = `
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, #8b5cf6, #3b82f6);
     border-radius: 6px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: white;
     font-size: 12px;
     font-weight: bold;
     cursor: pointer;
-    border: 2px solid transparent;
     transition: all 0.2s ease;
     position: relative;
   `;
@@ -1123,8 +1270,8 @@ function createGroupElement(group, groupIndex) {
     overflow: hidden;
     text-overflow: ellipsis;
     font-size: var(--text-size);
-    color: #ffffff;
-    opacity: 0.9;
+    color: var(--text-primary);
+    opacity: 1;
     text-align: center;
   `;
   preview.appendChild(nameEl);
@@ -1136,8 +1283,8 @@ function createGroupElement(group, groupIndex) {
   countEl.style.cssText = `
     margin-top: 2px;
     font-size: var(--text-size);
-    color: #e2e8f0;
-    opacity: 0.9;
+    color: var(--text-secondary);
+    opacity: 1;
   `;
   preview.appendChild(countEl);
 
@@ -1175,8 +1322,15 @@ function createGalleryItem(doodle, index, groupIndex = null) {
   const thumbnail = document.createElement('img');
   thumbnail.className = 'gallery-thumbnail doodle-thumbnail';
   thumbnail.src = doodle.imageData;
-  thumbnail.alt = `Doodle ${index + 1}`;
-  thumbnail.title = `Created: ${new Date(doodle.timestamp).toLocaleDateString()}`;
+  const titleName = (doodle.name && String(doodle.name).trim()) ? String(doodle.name).trim() : `Doodle ${index + 1}`;
+  thumbnail.alt = titleName;
+  try {
+    const created = doodle.timestamp ? new Date(doodle.timestamp) : null;
+    const createdStr = created && !isNaN(created) ? created.toLocaleString() : '';
+    thumbnail.title = `${titleName}${createdStr ? ` — ${createdStr}` : ''}`;
+  } catch {
+    thumbnail.title = titleName;
+  }
   thumbnail.draggable = true;
   
   itemEl.appendChild(thumbnail);
@@ -1292,15 +1446,20 @@ function setupGalleryKeyboardShortcuts() {
     const modal = document.getElementById('galleryModal');
     if (!modal || !modal.classList.contains('show')) return;
     
-    // Handle ESC/Q for doodle modal - go back to gallery instead of closing modal
-    const doodleModal = document.getElementById('doodleViewModal');
-    if (doodleModal && doodleModal.classList.contains('show')) {
+    // If image-view (doodleViewModal) is open, let its own close logic run
+    const doodleView = document.getElementById('doodleViewModal');
+    if (doodleView && doodleView.classList.contains('show')) {
       const key = e.key.toLowerCase();
       if (key === 'escape' || key === 'q') {
         e.preventDefault();
         hideDoodleModal();
         return;
       }
+      return;
+    }
+    // If drawing modal is open above gallery, do not process gallery keys here
+    const drawingModalEl = document.getElementById('doodleModal');
+    if (drawingModalEl && drawingModalEl.classList.contains('show')) {
       return;
     }
     
@@ -1342,7 +1501,22 @@ function setupGalleryKeyboardShortcuts() {
     }
     
     
-    switch (key) {
+      switch (key) {
+      case 'i':
+        // Open drawing modal with current image above gallery (do not close gallery)
+        e.preventDefault();
+        if (currentFocusIndex >= 0 && currentFocusIndex < galleryNavigationItems.length) {
+          const item = galleryNavigationItems[currentFocusIndex];
+          if (item.type === 'doodle') {
+            const doodle = getDoodleById(item.id);
+            if (doodle) {
+              if (window.showDrawingModal) {
+                try { window.showDrawingModal(doodle.imageData, doodle.id, doodle.name); } catch { window.showDrawingModal(); }
+              }
+            }
+          }
+        }
+        break;
       case 'g':
         e.preventDefault();
         createGroupFromSelected();
@@ -1357,7 +1531,49 @@ function setupGalleryKeyboardShortcuts() {
         break;
       case 'd':
         e.preventDefault();
+        if (selectedItems.size === 0 && currentFocusIndex >= 0 && currentFocusIndex < galleryNavigationItems.length) {
+          // No selection: delete item under cursor (single-item delete convenience)
+          const item = galleryNavigationItems[currentFocusIndex];
+          if (item.type === 'doodle') {
+            selectedItems.add(item.id);
+          } else if (item.type === 'group') {
+            // For top-level groups, selection uses groupIndex
+            if (currentGroupIndex < 0 && typeof item.groupIndex === 'number') {
+              selectedItems.add(String(item.groupIndex));
+            } else if (item.id) {
+              // Nested subgroup: select by id
+              selectedItems.add(item.id);
+            }
+          }
+          updateGlobalSelectedItems();
+          updateSelectedCount();
+        }
         deleteSelected();
+        break;
+      case 'r':
+        // Rename doodle under cursor
+        e.preventDefault();
+        if (currentFocusIndex >= 0 && currentFocusIndex < galleryNavigationItems.length) {
+          const item = galleryNavigationItems[currentFocusIndex];
+          if (item.type === 'doodle') {
+            const doodle = getDoodleById(item.id);
+            if (doodle) {
+              const existingName = (doodle.name || '').trim();
+              const proposed = prompt('Rename doodle', existingName);
+              if (proposed !== null) {
+                const trimmed = proposed.trim();
+                const existing = getItem('site-blocker:doodles') || [];
+                const doodles = Array.isArray(existing) ? existing : [];
+                const idx = doodles.findIndex(d => String(d.id) === String(doodle.id));
+                if (idx !== -1) {
+                  doodles[idx] = { ...(doodles[idx] || {}), name: trimmed || existingName };
+                  setItem('site-blocker:doodles', doodles);
+                  updateFullGallery();
+                }
+              }
+            }
+          }
+        }
         break;
       case 'escape':
         if (selectedItems.size > 0) {
@@ -1497,7 +1713,101 @@ function setupGalleryKeyboardShortcuts() {
         break;
       case 'm':
         e.preventDefault();
-        moveCurrentItemToEnd();
+        // Move selected items (doodles and groups) to the top-level group under the cursor
+        if (selectedItems.size > 0 && currentFocusIndex >= 0 && currentFocusIndex < galleryNavigationItems.length) {
+          const target = galleryNavigationItems[currentFocusIndex];
+          if (target.type === 'group' && currentGroupIndex < 0 && typeof target.groupIndex === 'number') {
+            const destIndex = target.groupIndex;
+            const destGroup = galleryGroups[destIndex];
+            if (destGroup) {
+              destGroup.items = Array.isArray(destGroup.items) ? destGroup.items : [];
+              const selectionArray = Array.from(selectedItems);
+              // Separate doodle ids and group indices/ids
+              const doodleIds = selectionArray.filter(id => !!getDoodleById(id));
+              // Determine selected top-level groups by numeric index strings
+              const selectedTopLevelGroups = selectionArray
+                .filter(x => typeof x === 'string' && x.startsWith('group-'))
+                .map(x => parseInt(x.replace('group-', ''), 10))
+                .filter(n => !Number.isNaN(n) && n >= 0 && n < galleryGroups.length && n !== destIndex);
+
+              // Remove doodles from all groups to avoid duplicates
+              if (doodleIds.length > 0) {
+                // Recursively remove doodles from any group or subgroup
+                const removeFromGroupRecursive = (grp) => {
+                  if (!grp || !Array.isArray(grp.items)) return;
+                  grp.items = grp.items.filter(it => {
+                    if (it && Array.isArray(it.items) && !it.imageData) {
+                      removeFromGroupRecursive(it);
+                      return true;
+                    }
+                    return !(it && it.id && doodleIds.includes(it.id));
+                  });
+                };
+                galleryGroups.forEach(g => removeFromGroupRecursive(g));
+                // Append full doodle objects to destination
+                doodleIds.forEach(id => {
+                  const d = getDoodleById(id);
+                  if (d) destGroup.items.push(d);
+                });
+              }
+
+              // Move selected top-level groups into destination as subgroups
+              if (selectedTopLevelGroups.length > 0) {
+                // Extract groups in descending order to avoid reindex issues
+                const groupsToNest = selectedTopLevelGroups
+                  .filter(idx => idx !== destIndex)
+                  .sort((a, b) => b - a)
+                  .map(idx => galleryGroups.splice(idx, 1)[0])
+                  .filter(Boolean);
+                // Insert as subgroups
+                groupsToNest.forEach(grp => {
+                  // Ensure subgroup structure
+                  const subgroup = { id: grp.id, name: grp.name, items: Array.isArray(grp.items) ? grp.items : [], type: 'group' };
+                  destGroup.items.push(subgroup);
+                });
+              }
+
+              // Persist and refresh UI
+              saveGalleryGroups();
+              selectedItems.clear();
+              updateGlobalSelectedItems();
+              updateSelectedCount();
+              clearAllSelections();
+              // Re-render full gallery (top-level)
+              const doodles = getItem('site-blocker:doodles') || [];
+              renderGalleryItems(doodles);
+              buildNavigationItems();
+              // Keep cursor on destination group if still present
+              const newDestIndex = galleryGroups.findIndex(g => g && g.id === destGroup.id);
+              if (newDestIndex !== -1) {
+                currentFocusIndex = galleryNavigationItems.findIndex(it => it.type === 'group' && it.groupIndex === newDestIndex);
+              }
+              syncCursorIndex();
+              updateGalleryCursor();
+            }
+          }
+        }
+        break;
+      case 'u':
+        e.preventDefault();
+        // Allow ungroup when cursor is over a group even without selection
+        if (selectedItems.size === 0 && currentFocusIndex >= 0 && currentFocusIndex < galleryNavigationItems.length) {
+          const item = galleryNavigationItems[currentFocusIndex];
+          if (item.type === 'group') {
+            if (currentGroupIndex < 0 && typeof item.groupIndex === 'number') {
+              selectedItems.add(`group-${item.groupIndex}`);
+            } else if (item.id) {
+              selectedItems.add(item.id);
+            }
+            updateGlobalSelectedItems();
+            updateSelectedCount();
+            // Now call ungroupSelected with the group selected
+            ungroupSelected();
+            return;
+          }
+        }
+        // If items are already selected, proceed with normal ungroup
+        ungroupSelected();
         break;
       case 'M':
         e.preventDefault();
@@ -2509,17 +2819,14 @@ function renderGroupItems(group) {
         preview.style.cssText = `
           width: 100%;
           height: 100%;
-          background: linear-gradient(135deg, #8b5cf6, #3b82f6);
           border-radius: 6px;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          color: white;
           font-size: 12px;
           font-weight: bold;
           cursor: pointer;
-          border: 2px solid transparent;
           transition: all 0.2s ease;
           position: relative;
         `;
@@ -2537,8 +2844,8 @@ function renderGroupItems(group) {
           overflow: hidden;
           text-overflow: ellipsis;
           font-size: var(--text-size);
-          color: #ffffff;
-          opacity: 0.9;
+          color: var(--text-primary);
+          opacity: 1;
           text-align: center;
         `;
         const countEl = document.createElement('div');
@@ -2547,8 +2854,8 @@ function renderGroupItems(group) {
         countEl.style.cssText = `
           margin-top: 2px;
           font-size: var(--text-size);
-          color: #e2e8f0;
-          opacity: 0.9;
+          color: var(--text-secondary);
+          opacity: 1;
         `;
         preview.appendChild(nameEl);
         preview.appendChild(countEl);
@@ -3032,8 +3339,20 @@ function showDoodleModal(doodle) {
   image.alt = 'Doodle';
   
   const info = document.createElement('div');
-  info.style.cssText = 'margin-top: 12px; text-align: center; color: #94a3b8; font-size: 0.9rem;';
-  info.textContent = `Created: ${new Date(doodle.timestamp).toLocaleString()} • Type: ${doodle.type}`;
+  info.style.cssText = 'margin-top: 12px; display: flex; justify-content: space-between; color: #94a3b8; font-size: 0.9rem;';
+  const doodleName = (doodle.name && String(doodle.name).trim()) ? String(doodle.name).trim() : 'Untitled';
+  const timestamp = new Date(doodle.timestamp);
+  const formattedDate = `${timestamp.getDate().toString().padStart(2, '0')}/${(timestamp.getMonth() + 1).toString().padStart(2, '0')}/${timestamp.getFullYear().toString().slice(-2)}`;
+  
+  const nameSpan = document.createElement('span');
+  nameSpan.textContent = doodleName;
+  try { nameSpan.style.fontWeight = '600'; } catch {}
+  
+  const dateSpan = document.createElement('span');
+  dateSpan.textContent = formattedDate;
+  
+  info.appendChild(nameSpan);
+  info.appendChild(dateSpan);
   
   content.appendChild(closeBtn);
   content.appendChild(image);

@@ -333,6 +333,7 @@ function handleGlobalKeydown(ev) {
       }
       
       // For other modals, let their specific handlers process keys
+      // IMPORTANT: Return early to prevent global key handlers from interfering
       return;
     }
   }

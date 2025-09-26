@@ -147,17 +147,21 @@ function startExercise() {
   exerciseSeconds = 0;
   
   updateStartButton('Get ready… 5s');
+  updateExerciseProgress(0, 'Preparing...');
   playBeep(660, 150);
   
   exerciseTimer = setInterval(() => {
     if (exerciseState === 'prep') {
       exercisePrepCount -= 1;
+      const prepProgress = ((5 - exercisePrepCount) / 5) * 10; // 0-10% for prep
       updateStartButton(`Get ready… ${Math.max(exercisePrepCount, 0)}s`);
+      updateExerciseProgress(prepProgress, `Get ready... ${Math.max(exercisePrepCount, 0)}s`);
       
       if (exercisePrepCount <= 0) {
         exerciseState = 'work';
         exerciseRepCount = 1;
         updateStartButton(`Rep ${exerciseRepCount}/${reps} — 4s`);
+        updateExerciseProgress(10, `Starting rep ${exerciseRepCount}/${reps}`);
         playBeep(880, 180);
       }
       return;
@@ -167,6 +171,11 @@ function startExercise() {
       exerciseSeconds += 1;
       const within = 4 - ((exerciseSeconds - 1) % 4);
       updateStartButton(`Rep ${exerciseRepCount}/${reps} — ${within}s`);
+      
+      // Calculate progress: 10% prep + 90% work
+      const workProgress = ((exerciseRepCount - 1) * 4 + (4 - within)) / (reps * 4) * 90;
+      const totalProgress = 10 + workProgress;
+      updateExerciseProgress(totalProgress, `Rep ${exerciseRepCount}/${reps} — ${within}s`);
       
       if ((exerciseSeconds - 1) % 4 === 0) {
         playBeep(880, 160);
@@ -178,6 +187,7 @@ function startExercise() {
           exerciseTimer = null;
           exerciseRunning = false;
           updateStartButton('Start set');
+          updateExerciseProgress(100, 'Exercise completed! 🎉');
           playExerciseCompleteBeep();
           
           // Close modal on completion
@@ -192,6 +202,7 @@ function startExercise() {
           return;
         }
         exerciseRepCount += 1;
+        updateExerciseProgress(10 + ((exerciseRepCount - 1) / reps) * 90, `Starting rep ${exerciseRepCount}/${reps}`);
       }
     }
   }, 1000);
@@ -207,6 +218,7 @@ function cancelExercise() {
   }
   exerciseRunning = false;
   updateStartButton('Start set');
+  updateExerciseProgress(0, 'Ready to start');
 }
 
 /**
@@ -218,6 +230,52 @@ function updateStartButton(text) {
   const startBtnModal = getElementById('exStartModal');
   if (startBtn) updateTextContent(startBtn, text);
   if (startBtnModal) updateTextContent(startBtnModal, text);
+}
+
+/**
+ * Update exercise progress visualization
+ * @param {number} progress - Progress percentage (0-100)
+ * @param {string} statusText - Status text to display
+ */
+function updateExerciseProgress(progress, statusText) {
+  const progressContainer = getElementById('exerciseProgressContainer');
+  const progressFill = getElementById('exerciseProgressFill');
+  const progressText = getElementById('exerciseProgressText');
+  const statusElement = getElementById('exerciseStatus');
+  const statusTextElement = getElementById('exerciseStatusText');
+  
+  if (progressContainer) {
+    if (progress > 0) {
+      progressContainer.style.display = 'flex';
+    } else {
+      progressContainer.style.display = 'none';
+    }
+  }
+  
+  if (progressFill) {
+    progressFill.style.width = `${Math.min(progress, 100)}%`;
+  }
+  
+  if (progressText) {
+    progressText.textContent = `${Math.round(progress)}%`;
+  }
+  
+  if (statusElement && statusTextElement) {
+    if (statusText) {
+      statusElement.style.display = 'inline-flex';
+      statusTextElement.textContent = statusText;
+      
+      // Update status styling based on exercise state
+      statusElement.className = 'exercise-status';
+      if (exerciseRunning) {
+        statusElement.classList.add('running');
+      } else if (progress >= 100) {
+        statusElement.classList.add('completed');
+      }
+    } else {
+      statusElement.style.display = 'none';
+    }
+  }
 }
 
 /**

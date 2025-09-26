@@ -3,7 +3,7 @@
  * Handles drawing interface and user interactions
  */
 
-import { initializeDrawingCanvas, startDrawingStroke, continueDrawingStroke, stopDrawingStroke, saveCanvasState, undoDrawingAction, redoDrawingAction, clearCanvas, adjustCanvasZoom, saveCanvasAsImage, copyCanvasToClipboard, saveDoodleToGallery, copyDoodleToClipboardAndSave, updateCanvasTheme, drawShapeStroke, finalizeShapeStroke } from '../application/DrawingService.js';
+import { initializeDrawingCanvas, startDrawingStroke, continueDrawingStroke, stopDrawingStroke, saveCanvasState, undoDrawingAction, redoDrawingAction, clearCanvas, adjustCanvasZoom, saveCanvasAsImage, copyCanvasToClipboard, saveDoodleToGallery, copyDoodleToClipboardAndSave, updateCanvasTheme, drawShapeStroke, finalizeShapeStroke, saveDoodleToGalleryWithOptions } from '../application/DrawingService.js';
 import { getElementById, showElement, hideElement, addEventListener, removeEventListener, createElement, updateTextContent, addClass, removeClass } from '../infrastructure/UI.js';
 import { isTopModal } from './ModalManager.js';
 import { CANVAS_CONFIG, STORAGE_KEYS } from '../shared/Constants.js';
@@ -90,6 +90,8 @@ let mouseX = 0;
 let mouseY = 0;
 // Zoom acceleration state for held keys
 let zoomAccel = { key: null, count: 0, lastTime: 0 };
+// Track name for current doodle session
+let currentDoodleName = '';
 
 /**
  * Apply CSS transform to canvas based on current zoom/pan
@@ -106,7 +108,7 @@ function applyCanvasTransform() {
 /**
  * Show drawing modal
  */
-export function showDrawingModal() {
+export function showDrawingModal(imageData = null, sourceDoodleId = null, sourceDoodleName = null) {
   console.log('DrawingController: showDrawingModal called');
   const modal = getElementById('doodleModal');
   if (!modal) {
@@ -141,6 +143,35 @@ export function showDrawingModal() {
   drawingState = updateCanvasTheme(drawingState);
   // Default tool
   drawingState.tool = 'pen';
+  // Set name tracking - use existing name if editing, otherwise empty
+  currentDoodleName = (sourceDoodleName && sourceDoodleName.trim()) || '';
+
+  // If editing an existing doodle, load it onto the canvas
+  if (imageData && typeof imageData === 'string') {
+    try {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          // Draw image to fit canvas while preserving aspect ratio
+          const cw = canvas.width;
+          const ch = canvas.height;
+          const iw = img.width;
+          const ih = img.height;
+          const scale = Math.min(cw / iw, ch / ih);
+          const dw = Math.floor(iw * scale);
+          const dh = Math.floor(ih * scale);
+          const dx = Math.floor((cw - dw) / 2);
+          const dy = Math.floor((ch - dh) / 2);
+          drawingState.ctx.drawImage(img, dx, dy, dw, dh);
+          drawingState = saveCanvasState(drawingState);
+          drawingState.editingDoodleId = sourceDoodleId || null;
+        } catch {}
+      };
+      img.src = imageData;
+    } catch {}
+  } else {
+    drawingState.editingDoodleId = null;
+  }
   
   setupCanvasEvents();
   // Mark that CSS transforms will be used for zoom/pan and sync
@@ -174,6 +205,7 @@ export function hideDrawingModal() {
   spacePressed = false;
   mouseX = 0;
   mouseY = 0;
+  currentDoodleName = '';
 }
 
 /**
@@ -395,11 +427,17 @@ function handleModalKeydown(e) {
     return;
   }
   
-  // Tool selection: d pen, 1 rectangle, 2 diamond, 3 circle, a arrow, 0 pen
-  if (key === 'd') {
+  // Tool selection: p pen, e eraser, 1 rectangle, 2 diamond, 3 circle, a arrow
+  if (key === 'p') {
     e.preventDefault();
     if (drawingState) drawingState.tool = 'pen';
     showFeedback('Pen tool');
+    return;
+  }
+  if (key === 'e') {
+    e.preventDefault();
+    if (drawingState) drawingState.tool = 'eraser';
+    showFeedback('Eraser tool');
     return;
   }
   if (key === '1') {
@@ -428,8 +466,13 @@ function handleModalKeydown(e) {
   }
   if (key === '0') {
     e.preventDefault();
-    if (drawingState) drawingState.tool = 'pen';
-    showFeedback('Pen tool');
+    if (drawingState) {
+      drawingState.zoom = 1;
+      drawingState.panX = 0;
+      drawingState.panY = 0;
+      applyCanvasTransform();
+    }
+    showFeedback('Zoom reset');
     return;
   }
 
@@ -466,9 +509,59 @@ function handleModalKeydown(e) {
     return;
   }
   
+  // Download only (no gallery save)
+  if (key === 'd') {
+    e.preventDefault();
+    (async () => {
+      const ok = await saveCanvasAsImage(drawingState);
+      showFeedback(ok ? 'Downloaded' : 'Download failed');
+    })();
+    return;
+  }
+  
   if (key === 'c') {
     e.preventDefault();
     handleCopyCanvas();
+    return;
+  }
+
+  // Name the doodle or update its name
+  if (key === 'n') {
+    e.preventDefault();
+    // Prompt for a name; default to current if present
+    const existing = (currentDoodleName || '').trim();
+    const proposed = prompt('Name your doodle', existing || '');
+    if (proposed === null) return; // cancelled
+    const trimmed = proposed.trim();
+    if (!trimmed && !existing) {
+      // Nothing to set
+      showFeedback('Name unchanged');
+      return;
+    }
+    const wasUnnamed = !existing;
+    currentDoodleName = trimmed || existing; // keep existing if empty input
+    showFeedback(`Name: ${currentDoodleName}`);
+    // If doodle didn't exist yet and user provided a name, auto-save a new one
+    if (wasUnnamed && currentDoodleName) {
+      (async () => {
+        const imageData = drawingState.canvas.toDataURL('image/png');
+        const created = await saveDoodleToGalleryWithOptions(drawingState, { name: currentDoodleName, type: 'named', imageData });
+        if (created && created.id) {
+          drawingState.editingDoodleId = created.id;
+          if (window.updateDoodleGallery) window.updateDoodleGallery();
+        }
+      })();
+    } else if (drawingState && drawingState.editingDoodleId) {
+      // Update the existing doodle's name in storage
+      const existingList = getItem('site-blocker:doodles') || [];
+      const doodles = Array.isArray(existingList) ? existingList : [];
+      const idx = doodles.findIndex(d => String(d.id) === String(drawingState.editingDoodleId));
+      if (idx !== -1) {
+        doodles[idx] = { ...(doodles[idx] || {}), name: currentDoodleName };
+        setItem('site-blocker:doodles', doodles);
+        if (window.updateDoodleGallery) window.updateDoodleGallery();
+      }
+    }
     return;
   }
   
@@ -503,18 +596,41 @@ function handleClearCanvas() {
  * Handle save canvas
  */
 async function handleSaveCanvas() {
-  const success = await saveCanvasAsImage(drawingState);
-  if (success) {
-    // Also save to gallery
-    await saveDoodleToGallery(drawingState);
-    showFeedback('Saved!');
-    
-    // Update gallery
-    if (window.updateDoodleGallery) {
-      window.updateDoodleGallery();
+  try {
+    const editingId = drawingState && drawingState.editingDoodleId ? String(drawingState.editingDoodleId) : null;
+    if (editingId) {
+      // Overwrite existing doodle entry in storage without downloading
+      const dataUrl = drawingState.canvas.toDataURL('image/png');
+      const existing = getItem('site-blocker:doodles') || [];
+      const doodles = Array.isArray(existing) ? existing : [];
+      const idx = doodles.findIndex(d => String(d.id) === editingId);
+      if (idx !== -1) {
+        doodles[idx] = { ...(doodles[idx] || {}), imageData: dataUrl, timestamp: Date.now(), name: currentDoodleName || doodles[idx].name };
+        setItem('site-blocker:doodles', doodles);
+      } else {
+        // If not found, fall back to adding a new one
+        if (currentDoodleName) {
+          await saveDoodleToGalleryWithOptions(drawingState, { name: currentDoodleName, type: 'saved' });
+        } else {
+          await saveDoodleToGallery(drawingState);
+        }
+      }
+    } else {
+      // Create new entry in gallery
+      if (currentDoodleName) {
+        await saveDoodleToGalleryWithOptions(drawingState, { name: currentDoodleName, type: 'saved' });
+      } else {
+        await saveDoodleToGallery(drawingState);
+      }
     }
-  } else {
+  } catch {
     showFeedback('Save failed');
+    return;
+  }
+
+  showFeedback('Saved!');
+  if (window.updateDoodleGallery) {
+    window.updateDoodleGallery();
   }
 }
 
@@ -652,6 +768,7 @@ function showFeedback(message) {
   // If feedback corresponds to a shape tool selection, render outline-only icon
   const lower = (message || '').toLowerCase();
   const isPen = lower.includes('pen tool');
+  const isEraser = lower.includes('eraser tool');
   const isRectangle = lower.includes('rectangle tool');
   const isDiamond = lower.includes('diamond tool');
   const isCircle = lower.includes('circle tool');
@@ -662,6 +779,10 @@ function showFeedback(message) {
     if (isPen) {
       // Pen nib outline only
       return '<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M34 6 L42 14 L22 34 L14 34 L14 26 Z" stroke="currentColor" stroke-width="3" fill="none" stroke-linejoin="round"/></svg>';
+    }
+    // Eraser outline icon
+    if (isEraser) {
+      return '<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="12" width="32" height="24" rx="2" ry="2" stroke="currentColor" stroke-width="3" fill="none"/><path d="M12 20 L36 20" stroke="currentColor" stroke-width="2"/></svg>';
     }
     // Icons sized for visibility; rely on current theme via stroke set in CSS or inline
     if (isRectangle) {

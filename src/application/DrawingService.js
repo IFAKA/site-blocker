@@ -63,7 +63,7 @@ export function startDrawingStroke(state, event) {
   
   // For shapes, capture a snapshot for live preview
   let shapeSnapshot = state.shapeSnapshot;
-  if (state.tool && state.tool !== 'pen') {
+  if (state.tool && state.tool !== 'pen' && state.tool !== 'eraser') {
     shapeSnapshot = state.ctx.getImageData(0, 0, state.canvas.width, state.canvas.height);
   }
   
@@ -101,6 +101,73 @@ export function continueDrawingStroke(state, event) {
     state.ctx.lineTo(pos.x, pos.y);
     state.ctx.stroke();
     state.ctx.restore();
+    return {
+      ...state,
+      lastX: pos.x,
+      lastY: pos.y
+    };
+  } else if (state.tool === 'eraser') {
+    // Eraser tool - manually erase pixels to ensure proper saving
+    state.ctx.save();
+    if (!state.useCssTransform) {
+      state.ctx.scale(state.zoom, state.zoom);
+      state.ctx.translate(state.panX / state.zoom, state.panY / state.zoom);
+    }
+    
+    // Get current image data
+    const imageData = state.ctx.getImageData(0, 0, state.canvas.width, state.canvas.height);
+    const data = imageData.data;
+    
+    // Calculate eraser stroke path with 5x thickness
+    const eraserWidth = state.ctx.lineWidth * 5;
+    const steps = Math.max(1, Math.ceil(Math.sqrt(Math.pow(pos.x - state.lastX, 2) + Math.pow(pos.y - state.lastY, 2))));
+    
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const x = state.lastX + (pos.x - state.lastX) * t;
+      const y = state.lastY + (pos.y - state.lastY) * t;
+      
+      // Erase in a circle around the point
+      const radius = Math.ceil(eraserWidth / 2);
+      for (let dy = -radius; dy <= radius; dy++) {
+        for (let dx = -radius; dx <= radius; dx++) {
+          const px = Math.round(x + dx);
+          const py = Math.round(y + dy);
+          
+          if (px >= 0 && px < state.canvas.width && py >= 0 && py < state.canvas.height) {
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance <= radius) {
+              const index = (py * state.canvas.width + px) * 4;
+              // Set to background color based on current theme
+              const themeColors = getThemeColors();
+              const isDark = themeColors.background === '#1a1a1a';
+              const bgColor = isDark ? '#1a1a1a' : '#ffffff';
+              
+              // Parse background color (handle hex format)
+              let r = 255, g = 255, b = 255; // default to white
+              if (bgColor.startsWith('#')) {
+                const hex = bgColor.slice(1);
+                if (hex.length === 6) {
+                  r = parseInt(hex.slice(0, 2), 16);
+                  g = parseInt(hex.slice(2, 4), 16);
+                  b = parseInt(hex.slice(4, 6), 16);
+                }
+              }
+              
+              data[index] = r;     // R
+              data[index + 1] = g; // G
+              data[index + 2] = b; // B
+              data[index + 3] = 255; // A (fully opaque)
+            }
+          }
+        }
+      }
+    }
+    
+    // Put the modified image data back
+    state.ctx.putImageData(imageData, 0, 0);
+    state.ctx.restore();
+    
     return {
       ...state,
       lastX: pos.x,
@@ -158,7 +225,7 @@ export function stopDrawingStroke(state) {
  */
 export function drawShapeStroke(state, event) {
   if (!state || !state.ctx || !state.isDrawing) return state;
-  if (state.tool === 'pen') return state;
+  if (state.tool === 'pen' || state.tool === 'eraser') return state;
   const pos = state.useCssTransform
     ? calculateMousePositionCss(event, state.canvas, state.zoom)
     : calculateMousePosition(event, state.canvas, state.zoom, state.panX, state.panY);
@@ -229,7 +296,7 @@ export function drawShapeStroke(state, event) {
  * @returns {Object}
  */
 export function finalizeShapeStroke(state, event) {
-  if (!state || !state.ctx || state.tool === 'pen') return state;
+  if (!state || !state.ctx || state.tool === 'pen' || state.tool === 'eraser') return state;
   if (state.shapeSnapshot) {
     state.ctx.putImageData(state.shapeSnapshot, 0, 0);
   }
@@ -430,25 +497,8 @@ export async function saveDoodleToGallery(state) {
   
   try {
     const imageData = state.canvas.toDataURL('image/png');
-    const doodleData = {
-      id: `doodle-${Date.now()}`,
-      imageData: imageData,
-      timestamp: new Date().toISOString(),
-      type: 'saved'
-    };
-    
-    // Get existing doodles
-    const existingDoodles = getItem('site-blocker:doodles') || [];
-    
-    // Add new doodle
-    existingDoodles.push(doodleData);
-    
-    // Keep only last 50 doodles to prevent storage bloat
-    const limitedDoodles = existingDoodles.slice(-50);
-    
-    // Save using infrastructure layer
-    setItem('site-blocker:doodles', limitedDoodles);
-    
+    // Delegate to detailed saver to centralize behavior
+    await saveDoodleToGalleryWithOptions(state, { imageData, type: 'saved' });
     return true;
   } catch (error) {
     console.error('Error saving doodle to gallery:', error);
@@ -469,32 +519,47 @@ export async function copyDoodleToClipboardAndSave(state) {
     const copySuccess = await copyCanvasToClipboard(state);
     
     if (copySuccess) {
-      // Also save to gallery
       const imageData = state.canvas.toDataURL('image/png');
-      const doodleData = {
-        id: `doodle-${Date.now()}`,
-        imageData: imageData,
-        timestamp: new Date().toISOString(),
-        type: 'clipboarded'
-      };
-      
-      // Get existing doodles
-      const existingDoodles = getItem('site-blocker:doodles') || [];
-      
-      // Add new doodle
-      existingDoodles.push(doodleData);
-      
-      // Keep only last 50 doodles to prevent storage bloat
-      const limitedDoodles = existingDoodles.slice(-50);
-      
-      // Save using infrastructure layer
-      setItem('site-blocker:doodles', limitedDoodles);
+      await saveDoodleToGalleryWithOptions(state, { imageData, type: 'clipboarded' });
     }
     
     return copySuccess;
   } catch (error) {
     console.error('Error copying doodle and saving to gallery:', error);
     return false;
+  }
+}
+
+/**
+ * Save doodle with options (supports custom name and type) and return the created record
+ * @param {Object} state - Canvas state
+ * @param {Object} options - { name?: string, type?: string, imageData?: string }
+ * @returns {Promise<Object>} The created doodle object
+ */
+export async function saveDoodleToGalleryWithOptions(state, options = {}) {
+  if (!state || (!state.canvas && !options.imageData)) return null;
+  try {
+    const imageData = options.imageData || state.canvas.toDataURL('image/png');
+    const now = new Date();
+    const id = `doodle-${Date.now()}`;
+    const defaultName = `Doodle ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+    const doodleData = {
+      id,
+      imageData,
+      // Use ISO for stable sorting, but display may use locale
+      timestamp: now.toISOString(),
+      type: options.type || 'saved',
+      name: typeof options.name === 'string' && options.name.trim() ? options.name.trim() : defaultName
+    };
+
+    const existingDoodles = getItem('site-blocker:doodles') || [];
+    existingDoodles.push(doodleData);
+    const limitedDoodles = existingDoodles.slice(-50);
+    setItem('site-blocker:doodles', limitedDoodles);
+    return doodleData;
+  } catch (error) {
+    console.error('Error saving doodle with options:', error);
+    return null;
   }
 }
 
