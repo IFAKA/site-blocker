@@ -36,6 +36,7 @@ import {
   playMindTimerWarning,
   playMindComplete
 } from '../infrastructure/Audio.js';
+import { isTopModal } from './ModalManager.js';
 
 /**
  * Initialize mind exercise functionality
@@ -137,6 +138,7 @@ function setupMindKeyboardShortcuts() {
     // Only handle mind shortcuts when modal is open
     const modal = getElementById('mindModal');
     if (!modal || !modal.classList.contains('show')) return;
+    if (!isTopModal('mindModal')) return;
     
     const activeElement = document.activeElement;
     

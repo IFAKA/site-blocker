@@ -19,6 +19,10 @@ export function createCanvasState(width, height) {
     isDrawing: false,
     lastX: 0,
     lastY: 0,
+    // Current drawing tool: 'pen' | 'rectangle' | 'diamond' | 'circle' | 'arrow'
+    tool: 'pen',
+    // Holds a full-canvas ImageData snapshot while previewing shapes
+    shapeSnapshot: null,
     undoStack: [],
     redoStack: []
   };

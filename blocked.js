@@ -745,6 +745,7 @@ function updateDoodleGallery() {
         cursor: pointer;
         transition: all 0.2s ease;
       `;
+      previewItem.classList.add('preview-fade-in');
       
       const img = document.createElement('img');
       img.src = doodle.imageData;
@@ -1332,18 +1333,38 @@ function setupGalleryKeyboardShortcuts() {
         }
         break;
       case 'h':
+        if (e.shiftKey) {
+          e.preventDefault();
+          moveCurrentItemGridLeft();
+          break;
+        }
         e.preventDefault();
         navigateGallery(-2); // left
         break;
       case 'j':
+        if (e.shiftKey) {
+          e.preventDefault();
+          moveCurrentItemGridDown();
+          break;
+        }
         e.preventDefault();
         navigateGallery(1); // down
         break;
       case 'k':
+        if (e.shiftKey) {
+          e.preventDefault();
+          moveCurrentItemGridUp();
+          break;
+        }
         e.preventDefault();
         navigateGallery(-1); // up
         break;
       case 'l':
+        if (e.shiftKey) {
+          e.preventDefault();
+          moveCurrentItemGridRight();
+          break;
+        }
         e.preventDefault();
         navigateGallery(2); // right
         break;
@@ -1882,6 +1903,76 @@ function moveSelectedItems(direction) {
 }
 
 /**
+ * Move current focused item one cell left in grid
+ */
+function moveCurrentItemGridLeft() {
+  moveCurrentItemGridBy(-1, 0);
+}
+
+/**
+ * Move current focused item one cell right in grid
+ */
+function moveCurrentItemGridRight() {
+  moveCurrentItemGridBy(1, 0);
+}
+
+/**
+ * Move current focused item one row up in grid
+ */
+function moveCurrentItemGridUp() {
+  moveCurrentItemGridBy(0, -1);
+}
+
+/**
+ * Move current focused item one row down in grid
+ */
+function moveCurrentItemGridDown() {
+  moveCurrentItemGridBy(0, 1);
+}
+
+/**
+ * Generic grid move using items-per-row mapping
+ * @param {number} dx - columns delta (-1 left, +1 right)
+ * @param {number} dy - rows delta (-1 up, +1 down)
+ */
+function moveCurrentItemGridBy(dx, dy) {
+  if (currentFocusIndex < 0 || currentFocusIndex >= galleryNavigationItems.length) return;
+  const container = document.getElementById('doodleGallery');
+  if (!container) return;
+  const itemsPerRow = parseInt(container.style.getPropertyValue('--items-per-row')) || 11;
+  if (itemsPerRow <= 0) return;
+  
+  const currentItem = galleryNavigationItems[currentFocusIndex];
+  // Determine target index based on dx/dy
+  let targetIndex = currentFocusIndex + dx + dy * itemsPerRow;
+
+  // Boundaries: compute current row/col and clamp within grid
+  const currentRow = Math.floor(currentFocusIndex / itemsPerRow);
+  const currentCol = currentFocusIndex % itemsPerRow;
+  let targetRow = currentRow + dy;
+  let targetCol = currentCol + dx;
+  if (targetCol < 0) { targetCol = 0; }
+  if (targetCol >= itemsPerRow) { targetCol = itemsPerRow - 1; }
+  if (targetRow < 0) { targetRow = 0; }
+  const maxRow = Math.floor((galleryNavigationItems.length - 1) / itemsPerRow);
+  if (targetRow > maxRow) { targetRow = maxRow; }
+  targetIndex = targetRow * itemsPerRow + targetCol;
+  // Clamp within same type region (groups vs doodles)
+  // Find nearest valid target of the same type
+  while (targetIndex >= 0 && targetIndex < galleryNavigationItems.length) {
+    const target = galleryNavigationItems[targetIndex];
+    if (target && target.type === currentItem.type) {
+      moveItemInGallery(currentItem.id, target.id);
+      currentFocusIndex = targetIndex; // cursor follows moved item
+      updateGalleryCursor();
+      return;
+    }
+    // If type mismatch, step further in same direction
+    targetIndex += dx + dy * itemsPerRow;
+  }
+}
+
+/**
  * Update selected count display
  */
 function updateSelectedCount() {
@@ -1969,7 +2060,11 @@ function moveDoodlesInGallery(draggedId, targetId) {
   const draggedItem = doodles.splice(draggedIndex, 1)[0];
   
   // Find new target index (account for the removal)
-  const newTargetIndex = draggedIndex < targetIndex ? targetIndex - 1 : targetIndex;
+  // After removing the dragged item, items after it shift left by 1.
+  // To keep the dragged item aligned with the intended target position
+  // (same column when moving by rows, or one step when moving right),
+  // insert at the targetIndex in the post-removal array.
+  const newTargetIndex = targetIndex;
   
   // Insert at new position
   doodles.splice(newTargetIndex, 0, draggedItem);
@@ -1977,13 +2072,17 @@ function moveDoodlesInGallery(draggedId, targetId) {
   // Save updated doodles
   setItem('site-blocker:doodles', doodles);
   
-  // Just rebuild navigation items without touching DOM
+  // Rebuild navigation items and update DOM order to reflect changes
   if (currentGroupIndex >= 0) {
     const group = galleryGroups[currentGroupIndex];
     buildGroupNavigationItems(group);
   } else {
     buildNavigationItems();
   }
+
+  // Reflect new order visually
+  updateGalleryOrder();
+  updateGalleryCursor();
 }
 
 /**
@@ -2000,8 +2099,9 @@ function moveGroupsInGallery(draggedId, targetId) {
   // Remove dragged group from its current position
   const draggedGroup = galleryGroups.splice(draggedGroupIndex, 1)[0];
   
-  // Find new target index (account for the removal)
-  const newTargetIndex = draggedGroupIndex < targetGroupIndex ? targetGroupIndex - 1 : targetGroupIndex;
+  // After removing the dragged group, items after it shift left by 1.
+  // Insert at the original target index in the post-removal array.
+  const newTargetIndex = targetGroupIndex;
   
   // Insert at new position
   galleryGroups.splice(newTargetIndex, 0, draggedGroup);
@@ -2009,13 +2109,17 @@ function moveGroupsInGallery(draggedId, targetId) {
   // Save updated groups
   saveGalleryGroups();
   
-  // Just rebuild navigation items without touching DOM
+  // Rebuild navigation items and update DOM order to reflect changes
   if (currentGroupIndex >= 0) {
     const group = galleryGroups[currentGroupIndex];
     buildGroupNavigationItems(group);
   } else {
     buildNavigationItems();
   }
+
+  // Reflect new order visually
+  updateGalleryOrder();
+  updateGalleryCursor();
 }
 
 

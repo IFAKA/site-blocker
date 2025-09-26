@@ -24,6 +24,7 @@ import {
   hideElement,
   updateInnerHTML
 } from '../infrastructure/UI.js';
+import { isTopModal } from './ModalManager.js';
 import { 
   playEyeHealthFocusStart, 
   playEyeHealthMovementStart, 
@@ -93,6 +94,7 @@ function setupEyeHealthKeyboardShortcuts() {
     // Only handle eye health shortcuts when modal is open
     const modal = getElementById('eyeHealthModal');
     if (!modal || !modal.classList.contains('show')) return;
+    if (!isTopModal('eyeHealthModal')) return;
     
     // Skip if typing in input fields
     if (isTypingContext(document.activeElement)) return;

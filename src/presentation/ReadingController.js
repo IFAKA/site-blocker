@@ -6,6 +6,7 @@
 import { loadBookText, getCurrentReadingPointer, setCurrentReadingPointer, getCurrentReadingWPM, setCurrentReadingWPM, getCurrentReadingChunk, moveToNextReadingChunk, calculateReadingSessionTiming, splitTextForRSVP, getStoredBookText } from '../application/ReadingService.js';
 import { normalizeTextToParagraphs } from '../domain/Reading.js';
 import { getElementById, updateTextContent, showElement, hideElement, addEventListener, createElement, focusElement, addClass, removeClass } from '../infrastructure/UI.js';
+import { isTopModal } from './ModalManager.js';
 import { playBeep, playReadingCompleteBeep } from '../infrastructure/Audio.js';
 import { clamp } from '../shared/Utils.js';
 
@@ -559,7 +560,10 @@ function getSelectionIfInsidePara() {
  * @param {KeyboardEvent} ev - Keyboard event
  */
 function handleModalKeydown(ev) {
-  if (!getElementById('readModal')?.classList.contains('show')) return;
+  const id = 'readModal';
+  const el = getElementById(id);
+  if (!el || !el.classList.contains('show')) return;
+  if (!isTopModal(id)) return; // only top-most modal handles keys
   
   const key = (ev.key || '').toLowerCase();
   

@@ -3,8 +3,9 @@
  * Handles drawing interface and user interactions
  */
 
-import { initializeDrawingCanvas, startDrawingStroke, continueDrawingStroke, stopDrawingStroke, saveCanvasState, undoDrawingAction, redoDrawingAction, clearCanvas, adjustCanvasZoom, saveCanvasAsImage, copyCanvasToClipboard, saveDoodleToGallery, copyDoodleToClipboardAndSave, updateCanvasTheme } from '../application/DrawingService.js';
-import { getElementById, showElement, hideElement, addEventListener, createElement, updateTextContent, addClass, removeClass } from '../infrastructure/UI.js';
+import { initializeDrawingCanvas, startDrawingStroke, continueDrawingStroke, stopDrawingStroke, saveCanvasState, undoDrawingAction, redoDrawingAction, clearCanvas, adjustCanvasZoom, saveCanvasAsImage, copyCanvasToClipboard, saveDoodleToGallery, copyDoodleToClipboardAndSave, updateCanvasTheme, drawShapeStroke, finalizeShapeStroke } from '../application/DrawingService.js';
+import { getElementById, showElement, hideElement, addEventListener, removeEventListener, createElement, updateTextContent, addClass, removeClass } from '../infrastructure/UI.js';
+import { isTopModal } from './ModalManager.js';
 import { CANVAS_CONFIG } from '../shared/Constants.js';
 
 /**
@@ -123,6 +124,8 @@ export function showDrawingModal() {
   
   // Ensure theme colors are applied
   drawingState = updateCanvasTheme(drawingState);
+  // Default tool
+  drawingState.tool = 'pen';
   
   setupCanvasEvents();
   
@@ -218,25 +221,47 @@ function setupCanvasEvents() {
     mouseY = e.clientY - rect.top;
     
     if (e.buttons === 1) { // Left mouse button held
-      drawingState = continueDrawingStroke(drawingState, e);
+      // Always update preview when drawing
+      if (drawingState?.isDrawing) {
+        drawingState = continueDrawingStroke(drawingState, e);
+      }
     } else if (spacePressed && !drawingState?.isDrawing) {
+      // Start drawing on first move after Space is pressed so the start point
+      // is the exact cursor location, avoiding stale coordinates
       drawingState = startDrawingStroke(drawingState, e);
     } else if (spacePressed && drawingState?.isDrawing) {
       drawingState = continueDrawingStroke(drawingState, e);
     }
   });
   
-  addEventListener(canvas, 'mouseup', () => {
+  addEventListener(canvas, 'mouseup', (e) => {
     if (drawingState?.isDrawing) {
+      // If shape tool, draw shape on mouseup
+      if (drawingState.tool && drawingState.tool !== 'pen') {
+        drawingState = drawShapeStroke(drawingState, e);
+      }
       drawingState = stopDrawingStroke(drawingState);
       drawingState = saveCanvasState(drawingState);
     }
   });
   
   addEventListener(canvas, 'mouseleave', () => {
-    if (drawingState?.isDrawing) {
-      drawingState = stopDrawingStroke(drawingState);
-      drawingState = saveCanvasState(drawingState);
+    // Keep ghost visible when leaving; no action needed here
+  });
+
+  // Track pointer outside the canvas to keep ghost preview responsive
+  addEventListener(document, 'mousemove', (e) => {
+    if (!getElementById('doodleModal')?.classList.contains('show')) return;
+    const rect = canvas.getBoundingClientRect();
+    // Update mouseX/mouseY relative to canvas and clamp to bounds
+    const relX = e.clientX - rect.left;
+    const relY = e.clientY - rect.top;
+    // Do NOT clamp; allow overflow positioning so shapes can exceed canvas bounds
+    mouseX = relX;
+    mouseY = relY;
+    
+    if (spacePressed && drawingState?.isDrawing) {
+      drawingState = continueDrawingStroke(drawingState, e);
     }
   });
   
@@ -259,6 +284,16 @@ function setupCanvasEvents() {
       spacePressed = false;
       canvas.style.cursor = 'default';
       if (drawingState?.isDrawing) {
+        // Finalize shape if in shape mode
+        if (drawingState.tool && drawingState.tool !== 'pen') {
+          // Synthesize event at current pointer for final point
+          const rect = canvas.getBoundingClientRect();
+          const syntheticEvent = {
+            clientX: rect.left + mouseX,
+            clientY: rect.top + mouseY
+          };
+          drawingState = finalizeShapeStroke(drawingState, syntheticEvent);
+        }
         drawingState = stopDrawingStroke(drawingState);
         drawingState = saveCanvasState(drawingState);
       }
@@ -271,6 +306,7 @@ function setupCanvasEvents() {
  * @param {KeyboardEvent} e - Keyboard event
  */
 function handleModalKeydown(e) {
+  if (!isTopModal('doodleModal')) return;
   if (!getElementById('doodleModal')?.classList.contains('show')) return;
   
   const key = e.key.toLowerCase();
@@ -300,6 +336,44 @@ function handleModalKeydown(e) {
     return;
   }
   
+  // Tool selection: d pen, 1 rectangle, 2 diamond, 3 circle, a arrow, 0 pen
+  if (key === 'd') {
+    e.preventDefault();
+    if (drawingState) drawingState.tool = 'pen';
+    showFeedback('Pen tool');
+    return;
+  }
+  if (key === '1') {
+    e.preventDefault();
+    if (drawingState) drawingState.tool = 'rectangle';
+    showFeedback('Rectangle tool');
+    return;
+  }
+  if (key === '2') {
+    e.preventDefault();
+    if (drawingState) drawingState.tool = 'diamond';
+    showFeedback('Diamond tool');
+    return;
+  }
+  if (key === '3') {
+    e.preventDefault();
+    if (drawingState) drawingState.tool = 'circle';
+    showFeedback('Circle tool');
+    return;
+  }
+  if (key === 'a') {
+    e.preventDefault();
+    if (drawingState) drawingState.tool = 'arrow';
+    showFeedback('Arrow tool');
+    return;
+  }
+  if (key === '0') {
+    e.preventDefault();
+    if (drawingState) drawingState.tool = 'pen';
+    showFeedback('Pen tool');
+    return;
+  }
+
   // Undo/Redo
   if (key === 'z' && !e.metaKey && !e.ctrlKey) {
     e.preventDefault();
@@ -395,7 +469,12 @@ async function handleCopyCanvas() {
  * @param {Function} onConfirm - Confirm callback
  */
 function showConfirmation(message, onConfirm) {
+  // Prevent multiple confirm modals
+  const existing = getElementById('doodleConfirmModal');
+  if (existing) return;
+
   const confirmModal = createElement('div', {
+    id: 'doodleConfirmModal',
     style: {
       position: 'fixed',
       top: '0',
@@ -439,21 +518,28 @@ function showConfirmation(message, onConfirm) {
     if (confirmModal && confirmModal.parentNode) {
       confirmModal.parentNode.removeChild(confirmModal);
     }
+    // Remove key handler to avoid leaks or duplicate handling (must match capture)
+    removeEventListener(document, 'keydown', handleKey, { capture: true });
   };
   
   const handleKey = (e) => {
     const key = e.key.toLowerCase();
     if (key === 'y') {
       e.preventDefault();
+      e.stopImmediatePropagation();
+      e.stopPropagation();
       cleanup();
       onConfirm();
     } else if (key === 'n' || key === 'q' || key === 'escape') {
       e.preventDefault();
+      e.stopImmediatePropagation();
+      e.stopPropagation();
       cleanup();
     }
   };
   
-  addEventListener(document, 'keydown', handleKey);
+  // Use capture so we intercept before global handlers, and stop propagation
+  addEventListener(document, 'keydown', handleKey, { capture: true });
   addEventListener(confirmBox.querySelector('#confirmYes'), 'click', () => {
     cleanup();
     onConfirm();

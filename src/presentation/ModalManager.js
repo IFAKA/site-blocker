@@ -67,6 +67,18 @@ export function handleModalKeydown(ev) {
     return false; // Let other shortcuts modal keys pass through
   }
   
+  // If drawing confirmation modal is open, consume close keys so parent doodle modal stays open
+  const doodleConfirm = getElementById('doodleConfirmModal');
+  if (doodleConfirm && doodleConfirm.parentNode) {
+    if (key === 'q' || key === 'escape') {
+      ev.preventDefault();
+      // Let the confirmation's own handler deal with closing itself.
+      return true;
+    }
+    // Block other modal-level handling while confirmation is present
+    return true;
+  }
+
   // Check if delete confirmation modal is open - let gallery handler deal with it
   const deleteModal = getElementById('deleteConfirmModal');
   if (deleteModal && deleteModal.classList.contains('show')) {
@@ -131,6 +143,27 @@ export function handleModalKeydown(ev) {
   }
   
   return false;
+}
+
+/**
+ * Return the id of the top-most open modal, or null
+ */
+export function getTopOpenModalId() {
+  const anyModalOpen = !!querySelector('.modal.show');
+  if (!anyModalOpen) return null;
+  const openModals = querySelectorAll('.modal.show');
+  if (!openModals || openModals.length === 0) return null;
+  const topModal = openModals[openModals.length - 1];
+  return topModal ? topModal.id : null;
+}
+
+/**
+ * Check if the given modal id is the top-most open modal
+ * @param {string} modalId
+ * @returns {boolean}
+ */
+export function isTopModal(modalId) {
+  return getTopOpenModalId() === modalId;
 }
 
 /**

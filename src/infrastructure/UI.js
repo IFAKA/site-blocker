@@ -231,10 +231,15 @@ export function addEventListener(element, event, handler, options = {}) {
  * @param {Function} handler - Event handler
  * @returns {boolean} Success status
  */
-export function removeEventListener(element, event, handler) {
+export function removeEventListener(element, event, handler, options = undefined) {
   if (!element || !event || typeof handler !== 'function') return false;
   try {
-    element.removeEventListener(event, handler);
+    // Pass options to ensure capture/passive/once match when removing
+    if (options !== undefined) {
+      element.removeEventListener(event, handler, options);
+    } else {
+      element.removeEventListener(event, handler);
+    }
     return true;
   } catch (error) {
     console.warn('Failed to remove event listener:', error);

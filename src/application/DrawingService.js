@@ -57,11 +57,18 @@ export function startDrawingStroke(state, event) {
   
   const pos = calculateMousePosition(event, state.canvas, state.zoom, state.panX, state.panY);
   
+  // For shapes, capture a snapshot for live preview
+  let shapeSnapshot = state.shapeSnapshot;
+  if (state.tool && state.tool !== 'pen') {
+    shapeSnapshot = state.ctx.getImageData(0, 0, state.canvas.width, state.canvas.height);
+  }
+  
   return {
     ...state,
     isDrawing: true,
     lastX: pos.x,
-    lastY: pos.y
+    lastY: pos.y,
+    shapeSnapshot
   };
 }
 
@@ -76,21 +83,48 @@ export function continueDrawingStroke(state, event) {
   
   const pos = calculateMousePosition(event, state.canvas, state.zoom, state.panX, state.panY);
   
-  // Draw line
-  state.ctx.save();
-  state.ctx.scale(state.zoom, state.zoom);
-  state.ctx.translate(state.panX / state.zoom, state.panY / state.zoom);
-  state.ctx.beginPath();
-  state.ctx.moveTo(state.lastX, state.lastY);
-  state.ctx.lineTo(pos.x, pos.y);
-  state.ctx.stroke();
-  state.ctx.restore();
-  
-  return {
-    ...state,
-    lastX: pos.x,
-    lastY: pos.y
-  };
+  // For freehand pen tool, draw continuously
+  if (state.tool === 'pen') {
+    state.ctx.save();
+    state.ctx.scale(state.zoom, state.zoom);
+    state.ctx.translate(state.panX / state.zoom, state.panY / state.zoom);
+    state.ctx.beginPath();
+    state.ctx.moveTo(state.lastX, state.lastY);
+    state.ctx.lineTo(pos.x, pos.y);
+    state.ctx.stroke();
+    state.ctx.restore();
+    return {
+      ...state,
+      lastX: pos.x,
+      lastY: pos.y
+    };
+  } else {
+    // For shapes: restore snapshot and draw preview on top
+    if (state.shapeSnapshot) {
+      state.ctx.putImageData(state.shapeSnapshot, 0, 0);
+    }
+    // Use the same renderer as finalize, but preview based on current pos
+    const previewEvent = event; // pass the real MouseEvent so clientX/clientY are available
+    // Apply temporary "ghost" styling (semi-transparent + dashed)
+    state.ctx.save();
+    try {
+      state.ctx.globalAlpha = 0.5;
+      if (state.ctx.setLineDash) state.ctx.setLineDash([6, 4]);
+      // Use a distinct preview color to ensure visibility
+      const prevStroke = state.ctx.strokeStyle;
+      const prevWidth = state.ctx.lineWidth;
+      state.ctx.strokeStyle = 'rgba(59, 130, 246, 0.9)'; // blue
+      state.ctx.lineWidth = prevWidth;
+      state = drawShapeStroke(state, previewEvent);
+      // Restore stroke style before leaving try
+      state.ctx.strokeStyle = prevStroke;
+    } finally {
+      state.ctx.restore();
+      if (state.ctx.setLineDash) state.ctx.setLineDash([]);
+    }
+    // Do NOT update lastX/lastY for shapes; they represent the fixed start point
+    return state;
+  }
 }
 
 /**
@@ -103,8 +137,92 @@ export function stopDrawingStroke(state) {
   
   return {
     ...state,
-    isDrawing: false
+    isDrawing: false,
+    shapeSnapshot: null
   };
+}
+
+/**
+ * Draw a shape based on current tool from last point to current mouse position
+ * @param {Object} state - Canvas state
+ * @param {MouseEvent} event - Mouse event (for end position)
+ * @returns {Object} Updated state
+ */
+export function drawShapeStroke(state, event) {
+  if (!state || !state.ctx || !state.isDrawing) return state;
+  if (state.tool === 'pen') return state;
+  const pos = calculateMousePosition(event, state.canvas, state.zoom, state.panX, state.panY);
+  const startX = state.lastX;
+  const startY = state.lastY;
+
+  const ctx = state.ctx;
+  ctx.save();
+  ctx.scale(state.zoom, state.zoom);
+  ctx.translate(state.panX / state.zoom, state.panY / state.zoom);
+  ctx.beginPath();
+
+  if (state.tool === 'rectangle') {
+    const x = Math.min(startX, pos.x);
+    const y = Math.min(startY, pos.y);
+    const w = Math.abs(pos.x - startX);
+    const h = Math.abs(pos.y - startY);
+    ctx.strokeRect(x, y, w, h);
+  } else if (state.tool === 'diamond') {
+    const cx = (startX + pos.x) / 2;
+    const cy = (startY + pos.y) / 2;
+    const rx = Math.abs(pos.x - startX) / 2;
+    const ry = Math.abs(pos.y - startY) / 2;
+    ctx.moveTo(cx, cy - ry);
+    ctx.lineTo(cx + rx, cy);
+    ctx.lineTo(cx, cy + ry);
+    ctx.lineTo(cx - rx, cy);
+    ctx.closePath();
+    ctx.stroke();
+  } else if (state.tool === 'circle') {
+    const cx = (startX + pos.x) / 2;
+    const cy = (startY + pos.y) / 2;
+    const r = Math.min(Math.abs(pos.x - startX), Math.abs(pos.y - startY)) / 2;
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+  } else if (state.tool === 'arrow') {
+    // Straight arrow from start to end with arrowhead at end
+    const dx = pos.x - startX;
+    const dy = pos.y - startY;
+    const angle = Math.atan2(dy, dx);
+    const headLength = 10; // in canvas units
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(pos.x, pos.y);
+    // Arrowhead
+    ctx.moveTo(pos.x, pos.y);
+    ctx.lineTo(
+      pos.x - headLength * Math.cos(angle - Math.PI / 6),
+      pos.y - headLength * Math.sin(angle - Math.PI / 6)
+    );
+    ctx.moveTo(pos.x, pos.y);
+    ctx.lineTo(
+      pos.x - headLength * Math.cos(angle + Math.PI / 6),
+      pos.y - headLength * Math.sin(angle + Math.PI / 6)
+    );
+    ctx.stroke();
+  }
+
+  ctx.restore();
+  return state;
+}
+
+/**
+ * Finalize shape on mouseup (ensures snapshot restore + final draw)
+ * @param {Object} state
+ * @param {MouseEvent} event
+ * @returns {Object}
+ */
+export function finalizeShapeStroke(state, event) {
+  if (!state || !state.ctx || state.tool === 'pen') return state;
+  if (state.shapeSnapshot) {
+    state.ctx.putImageData(state.shapeSnapshot, 0, 0);
+  }
+  state = drawShapeStroke(state, event);
+  return state;
 }
 
 /**
