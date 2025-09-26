@@ -34,8 +34,8 @@ function setupReadingModal() {
     addEventListener(closeBtn, 'click', hideReadingModal);
   }
   
-  // Modal keydown handler attached to document (like original)
-  addEventListener(document, 'keydown', handleModalKeydown);
+  // Modal keydown handler is now called from global keyboard controller
+  // No need to attach directly to document
 }
 
 /**
@@ -559,35 +559,31 @@ function getSelectionIfInsidePara() {
  * Handle modal keydown events
  * @param {KeyboardEvent} ev - Keyboard event
  */
-function handleModalKeydown(ev) {
+export function handleReadingKeydown(ev) {
   const id = 'readModal';
   const el = getElementById(id);
-  if (!el || !el.classList.contains('show')) return;
-  if (!isTopModal(id)) return; // only top-most modal handles keys
+  if (!el || !el.classList.contains('show')) return false;
+  if (!isTopModal(id)) return false; // only top-most modal handles keys
   
   const key = (ev.key || '').toLowerCase();
   
   
   // If paragraph view is visible, enable keyboard selection UX
   if (readingParaEl && readingParaEl.isConnected && readingParaEl.style.display !== 'none') {
-    if (handleParagraphKey(ev, key)) return;
+    if (handleParagraphKey(ev, key)) return true;
   }
   
   
   // If typing in an input inside modal, don't hijack
   const t = ev.target;
   const tag = (t && t.tagName || '').toLowerCase();
-  if (tag === 'input' || tag === 'textarea' || (t && t.isContentEditable)) return;
+  if (tag === 'input' || tag === 'textarea' || (t && t.isContentEditable)) return false;
   
   // Space toggles start/pause
-  if (ev.key === ' ') {
+  if (ev.key === ' ' || ev.key === 'Space') {
     ev.preventDefault();
-    if (readingRunning) {
-      pauseReading();
-    } else {
-      resumeReading();
-    }
-    return;
+    handleToggleReading();
+    return true;
   }
   
   
@@ -613,14 +609,35 @@ function handleModalKeydown(ev) {
       stepReading();
     }
     updateReadingInfo();
-    return;
+    return true;
   }
   
   if (key === 'j') {
     ev.preventDefault();
-    handleJournalAction();
-    return;
+    const newWpm = Math.max(60, getCurrentReadingWPM() - 10);
+    setCurrentReadingWPM(newWpm);
+    
+    // Update WPM input field to reflect the change
+    const wpmInput = getElementById('wpm');
+    if (wpmInput) {
+      wpmInput.value = String(newWpm);
+    }
+    
+    if (readingRunning) {
+      // Recalculate countdown for remaining words
+      const remainingWords = readingWords.length - readingPos;
+      if (remainingWords > 0) {
+        const remainingTime = Math.ceil((remainingWords / newWpm) * 60);
+        startCountdown(remainingTime);
+      }
+      stepReading();
+    }
+    updateReadingInfo();
+    return true;
   }
+  
+  // Return false for unhandled keys
+  return false;
 }
 
 /**

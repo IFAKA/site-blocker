@@ -142,7 +142,7 @@ function getShortcutsContent(type) {
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; color: #64748b;">
           <div><strong>space</strong> - Start/pause reading</div>
           <div><strong>k</strong> - Increase WPM (+10)</div>
-          <div><strong>j</strong> - Journal selection mode</div>
+          <div><strong>j</strong> - Decrease WPM (-10)</div>
           <div><strong>q</strong> - Close modal</div>
           <div><strong>escape</strong> - Close modal</div>
         </div>

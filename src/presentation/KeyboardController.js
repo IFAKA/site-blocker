@@ -8,6 +8,7 @@ import { KEYBOARD_SHORTCUTS } from '../shared/Constants.js';
 import { deleteJournalEntry } from '../application/JournalService.js';
 import { clearJournalEntries as clearJournalEntriesUI } from './JournalController.js';
 import { handleMirrorKeydown } from './MirrorController.js';
+import { handleReadingKeydown } from './ReadingController.js';
 import { hideShortcutsModal, showShortcutsModal } from './ShortcutsController.js';
 import { handleModalKeydown, getShortcutsContext } from './ModalManager.js';
 
@@ -330,6 +331,13 @@ function handleGlobalKeydown(ev) {
       if (topModal.id === 'chineseModal') {
         // Chinese modal handles its own keys in handleChineseModalKeydown
         return;
+      }
+      
+      // Let reading modal handle its own keys
+      if (topModal.id === 'readModal') {
+        if (handleReadingKeydown(ev)) {
+          return; // Reading handler processed the event
+        }
       }
       
       // For other modals, let their specific handlers process keys
