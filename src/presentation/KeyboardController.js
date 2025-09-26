@@ -5,6 +5,9 @@
 
 import { getElementById, addEventListener, focusElement, blurElement, querySelector, querySelectorAll, scrollIntoView } from '../infrastructure/UI.js';
 import { KEYBOARD_SHORTCUTS } from '../shared/Constants.js';
+import { handleMirrorKeydown } from './MirrorController.js';
+import { hideShortcutsModal, showShortcutsModal } from './ShortcutsController.js';
+import { handleModalKeydown, getShortcutsContext } from './ModalManager.js';
 
 /**
  * Initialize keyboard shortcuts
@@ -158,43 +161,83 @@ function isTypingContext(el) {
 function handleGlobalKeydown(ev) {
   const key = ev.key.toLowerCase();
   
-  // If any modal is open, only allow q to close
+  // Handle modal keyboard events first
+  if (handleModalKeydown(ev)) {
+    return; // Modal manager handled the event
+  }
+  
+  // Check if any modal is open and let modal-specific handlers process other keys
   const anyModalOpen = !!querySelector('.modal.show');
   if (anyModalOpen) {
-    if (key === 'q') {
-      ev.preventDefault();
-      // Close any open modal
-      const openModal = querySelector('.modal.show');
-      if (openModal) {
-        openModal.classList.remove('show');
+    const openModals = querySelectorAll('.modal.show');
+    if (openModals.length > 0) {
+      const topModal = openModals[openModals.length - 1];
+      
+      // Let mirror modal handle its own keys
+      if (topModal.id === 'mirrorModal') {
+        if (handleMirrorKeydown(ev)) {
+          return; // Mirror handler processed the event
+        }
       }
+      
+      // Let Chinese modal handle its own keys
+      if (topModal.id === 'chineseModal') {
+        // Chinese modal handles its own keys in handleChineseModalKeydown
+        return;
+      }
+      
+      // For other modals, let their specific handlers process keys
+      return;
     }
-    return;
   }
   
   const active = document.activeElement;
   
-  // If typing: handle Escape to blur and Cmd+Enter to submit, otherwise pass through
+  // If typing: handle Escape to blur and Enter to submit, otherwise pass through
   if (isTypingContext(active)) {
-    if (key === 'escape') {
+    if (key === 'escape' || ev.key === 'Escape') {
       ev.preventDefault();
       if (active && active.blur) {
         active.blur();
       }
       return;
     }
-    if (key === 'enter' && (ev.metaKey || ev.ctrlKey)) {
+    if (key === 'enter') {
       ev.preventDefault();
-      const saveBtn = getElementById('saveIntent');
-      if (saveBtn) {
-        saveBtn.click();
+      // Handle different input contexts
+      if (active.id === 'intent') {
+        const saveBtn = getElementById('saveIntent');
+        if (saveBtn) {
+          saveBtn.click();
+        }
+      } else if (active.id === 'mindAnswer') {
+        // Let the mind controller handle this - don't prevent default
+        return;
+      } else {
+        // Generic submit - try to find a submit button
+        const form = active.closest('form');
+        if (form) {
+          const submitBtn = form.querySelector('button[type="submit"], .btn');
+          if (submitBtn) {
+            submitBtn.click();
+          }
+        }
       }
       return;
     }
+    // Block all other keybindings when typing
     return;
   }
   
   if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+  
+  // Handle ? key to open shortcuts modal based on context
+  if (key === '?') {
+    ev.preventDefault();
+    const context = getShortcutsContext();
+    showShortcutsModal(context);
+    return;
+  }
   
   if (listMode) {
     if (key === 'j') { ev.preventDefault(); moveSelection(1); return; }
@@ -206,12 +249,15 @@ function handleGlobalKeydown(ev) {
   if (key === 'r') { ev.preventDefault(); const readBtn = getElementById('readBtn'); if (readBtn) readBtn.click(); return; }
   if (key === 's') { ev.preventDefault(); const exStart = getElementById('exStart'); if (exStart) exStart.click(); return; }
   if (key === 'j') { ev.preventDefault(); const intent = getElementById('intent'); if (intent) focusElement(intent); return; }
+  if (key === 'i') { ev.preventDefault(); const intent = getElementById('intent'); if (intent) focusElement(intent); return; }
   if (key === 'l') { ev.preventDefault(); enterListMode(); return; }
   if (key === 'd') { ev.preventDefault(); if (window.showDoodleModal) window.showDoodleModal(); return; }
   if (key === 'e') { ev.preventDefault(); if (window.showEyeHealthModal) window.showEyeHealthModal(); return; }
+  if (key === 'm') { ev.preventDefault(); if (window.showMindModal) window.showMindModal(); return; }
+  if (key === 'c') { ev.preventDefault(); if (window.showChineseModal) window.showChineseModal(); return; }
+  if (key === 'v') { ev.preventDefault(); if (window.showMirrorModal) window.showMirrorModal(); return; }
   
   // Intent shortcuts
-  if (key === 'enter') { ev.preventDefault(); const saveBtn = getElementById('saveIntent'); if (saveBtn) saveBtn.click(); return; }
   if (key === 'x') { ev.preventDefault(); const clearBtn = getElementById('clearIntent'); if (clearBtn) clearBtn.click(); return; }
   
   // Exercise shortcuts
@@ -225,6 +271,7 @@ function handleGlobalKeydown(ev) {
 function setupGlobalShortcuts() {
   addEventListener(document, 'keydown', handleGlobalKeydown);
 }
+
 
 /**
  * Setup list mode shortcuts

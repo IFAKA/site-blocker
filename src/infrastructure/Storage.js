@@ -197,3 +197,20 @@ export function getBookMeta() {
 export function setBookMeta(length) {
   return setItem(STORAGE_KEYS.BOOK_META, String(length));
 }
+
+/**
+ * Get Chinese learning progress
+ * @returns {Object} Chinese progress data
+ */
+export function getChineseProgress() {
+  return getItem(STORAGE_KEYS.CHINESE_PROGRESS, {});
+}
+
+/**
+ * Set Chinese learning progress
+ * @param {Object} progress - Progress data
+ * @returns {boolean} Success status
+ */
+export function setChineseProgress(progress) {
+  return setItem(STORAGE_KEYS.CHINESE_PROGRESS, progress);
+}

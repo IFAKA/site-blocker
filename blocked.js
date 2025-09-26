@@ -25,10 +25,14 @@ import { showElement, hideElement, updateTextContent, updateInnerHTML, addClass,
 // Import presentation layer
 import { initializeJournal } from './src/presentation/JournalController.js';
 import { initializeExercise, renderCurrentExercise } from './src/presentation/ExerciseController.js';
-import { initializeReading } from './src/presentation/ReadingController.js';
-import { initializeDrawing } from './src/presentation/DrawingController.js';
+import { initializeReading, cancelReading } from './src/presentation/ReadingController.js';
+import { initializeDrawing, resetDrawingState } from './src/presentation/DrawingController.js';
 import { initializeEyeHealth, showEyeHealthModal, hideEyeHealthModal } from './src/presentation/EyeHealthController.js';
+import { initializeMind, showMindModal, hideMindModal } from './src/presentation/MindController.js';
+import { initializeChinese, getChineseModal, isChineseModalOpen, resetChineseModal } from './src/presentation/ChineseController.js';
+import { initializeMirror, resetMirrorModal } from './src/presentation/MirrorController.js';
 import { initializeKeyboardShortcuts } from './src/presentation/KeyboardController.js';
+import { initializeShortcutsModal, setupShortcutsButtons, showShortcutsModal } from './src/presentation/ShortcutsController.js';
 
 // Import shared utilities
 import { clamp, debounce, throttle, formatTimestamp, parseUrl, extractDomain, isWordChar, findNextWordIndex, findPrevWordIndex, isSentencePunct, getTokenBefore, looksLikeSentenceBoundary, findNextSentenceIndex, findPrevSentenceIndex } from './src/shared/Utils.js';
@@ -69,9 +73,26 @@ console.log('All imports loaded successfully');
     initializeEyeHealth();
     console.log('Eye health initialized');
     
+    console.log('Initializing mind exercises...');
+    initializeMind();
+    console.log('Mind exercises initialized');
+    
+    console.log('Initializing Chinese learning...');
+    initializeChinese();
+    console.log('Chinese learning initialized');
+    
+    console.log('Initializing mirror...');
+    initializeMirror();
+    console.log('Mirror initialized');
+    
     console.log('Initializing keyboard shortcuts...');
     initializeKeyboardShortcuts();
     console.log('Keyboard shortcuts initialized');
+    
+    console.log('Initializing shortcuts modal...');
+    initializeShortcutsModal();
+    setupShortcutsButtons();
+    console.log('Shortcuts modal initialized');
     
     // Initialize prayer functionality
     console.log('Initializing prayer...');
@@ -95,6 +116,65 @@ console.log('All imports loaded successfully');
   window.showEyeHealthModal = () => {
     console.log('showEyeHealthModal called');
     showEyeHealthModal();
+  };
+  
+  // Make mind modal globally accessible
+  window.showMindModal = () => {
+    console.log('showMindModal called');
+    showMindModal();
+  };
+  
+  // Make Chinese modal globally accessible
+  window.showChineseModal = () => {
+    console.log('showChineseModal called');
+    const chineseBtn = getElementById('chineseBtn');
+    if (chineseBtn) {
+      chineseBtn.click();
+    }
+  };
+  
+  // Make shortcuts modal globally accessible (assign early)
+  window.showShortcutsModal = showShortcutsModal;
+  console.log('showShortcutsModal assigned to window:', typeof window.showShortcutsModal);
+  
+  // Make modal close handlers globally accessible
+  window.hideReadingModal = () => {
+    const modal = getElementById('readModal');
+    if (modal) {
+      removeClass(modal, 'show');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+    cancelReading();
+  };
+  
+  window.hideDrawingModal = () => {
+    const modal = getElementById('doodleModal');
+    if (modal) {
+      removeClass(modal, 'show');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+    resetDrawingState();
+  };
+  
+  window.hideEyeHealthModal = hideEyeHealthModal;
+  window.hideMindModal = hideMindModal;
+  
+  window.hideChineseModal = () => {
+    const modal = getElementById('chineseModal');
+    if (modal) {
+      removeClass(modal, 'show');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+    resetChineseModal();
+  };
+  
+  window.hideMirrorModal = () => {
+    const modal = getElementById('mirrorModal');
+    if (modal) {
+      removeClass(modal, 'show');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+    resetMirrorModal();
   };
   
   // Initialize exercise rendering

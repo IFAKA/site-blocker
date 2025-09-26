@@ -249,7 +249,7 @@ function resumeReading() {
 /**
  * Cancel reading session
  */
-function cancelReading() {
+export function cancelReading() {
   if (readingTimer) {
     clearInterval(readingTimer);
     readingTimer = null;
@@ -554,17 +554,12 @@ function handleModalKeydown(ev) {
   
   const key = (ev.key || '').toLowerCase();
   
-  // Always allow Escape or q to close
-  if (key === 'escape' || key === 'q') {
-    ev.preventDefault();
-    hideReadingModal();
-    return;
-  }
   
   // If paragraph view is visible, enable keyboard selection UX
   if (readingParaEl && readingParaEl.isConnected && readingParaEl.style.display !== 'none') {
     if (handleParagraphKey(ev, key)) return;
   }
+  
   
   // If typing in an input inside modal, don't hijack
   const t = ev.target;
@@ -746,10 +741,15 @@ function handleParagraphKey(ev, key) {
     return true; 
   }
   
-  // escape clears selection
-  if (key === 'escape') { 
+  // escape and q clear selection (only if there's an active selection)
+  if (key === 'escape' || key === 'q') { 
     ev.preventDefault(); 
-    clearSelection(); 
+    if (selActive) {
+      clearSelection(); 
+    } else {
+      // If no active selection, let the global handler close the modal
+      return false;
+    }
     return true; 
   }
   

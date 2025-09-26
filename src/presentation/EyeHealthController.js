@@ -108,6 +108,7 @@ function setupEyeHealthKeyboardShortcuts() {
       const resetBtn = getElementById('eyeReset');
       if (resetBtn) resetBtn.click();
     }
+    
   });
 }
 
@@ -392,6 +393,7 @@ export function showEyeHealthModal() {
   const modal = getElementById('eyeHealthModal');
   if (modal) {
     addClass(modal, 'show');
+    modal.setAttribute('aria-hidden', 'false');
     renderCurrentEyeHealth();
     // Auto-start the routine when modal opens
     setTimeout(() => {
@@ -407,6 +409,7 @@ export function hideEyeHealthModal() {
   const modal = getElementById('eyeHealthModal');
   if (modal) {
     removeClass(modal, 'show');
+    modal.setAttribute('aria-hidden', 'true');
     cancelEyeHealth();
   }
 }

@@ -95,6 +95,22 @@ function hideDrawingModal() {
     // Restore aria-hidden when modal is hidden
     modal.setAttribute('aria-hidden', 'true');
   }
+  
+  // Reset drawing state
+  drawingState = null;
+  spacePressed = false;
+  mouseX = 0;
+  mouseY = 0;
+}
+
+/**
+ * Reset drawing state (exported for global access)
+ */
+export function resetDrawingState() {
+  drawingState = null;
+  spacePressed = false;
+  mouseX = 0;
+  mouseY = 0;
 }
 
 /**
@@ -239,12 +255,7 @@ function handleModalKeydown(e) {
     return;
   }
   
-  // Close modal
-  if (key === 'escape') {
-    e.preventDefault();
-    hideDrawingModal();
-    return;
-  }
+  
 }
 
 /**

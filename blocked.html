@@ -183,6 +183,11 @@
         padding: 18px;
         box-shadow: 0 20px 60px rgba(0,0,0,0.5);
       }
+      .modal .panel.mirror-panel {
+        max-width: none;
+        width: fit-content;
+        min-width: 300px;
+      }
       .modal .panel h3 { margin: 0 0 8px 0; }
       .modal .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
       .modal .controls input[type="number"] {
@@ -259,12 +264,548 @@
       .modal .doodle-feedback.show {
         opacity: 1;
       }
+      /* Eye Health modal */
+      .modal .eye-health-content {
+        padding: 16px 0;
+      }
+      .modal .eye-phase {
+        text-align: center;
+        margin-bottom: 24px;
+      }
+      .modal .eye-phase h4 {
+        font-size: 1.5rem;
+        margin: 0 0 8px 0;
+        color: #e2e8f0;
+      }
+      .modal .eye-subtitle {
+        font-size: 1.1rem;
+        color: #94a3b8;
+        margin-bottom: 12px;
+      }
+      .modal .eye-instruction {
+        font-size: 1rem;
+        color: #cbd5e1;
+        margin-bottom: 8px;
+        line-height: 1.5;
+      }
+      .modal .eye-progress {
+        font-size: 0.9rem;
+        color: #64748b;
+      }
+      .modal .eye-breathing {
+        text-align: center;
+        margin: 16px 0;
+        padding: 16px;
+        background: #1e293b;
+        border-radius: 8px;
+        border: 1px solid #334155;
+      }
+      .modal .breathing-indicator {
+        font-size: 1.2rem;
+        color: #10b981;
+        font-weight: 600;
+      }
+      .modal .eye-controls {
+        border-top: 1px solid #334155;
+        padding-top: 16px;
+      }
+      /* Mind Exercise modal */
+      .modal .mind-content {
+        padding: 16px 0;
+      }
+      .modal .mind-stats {
+        margin-bottom: 16px;
+        padding: 12px;
+        background: #1e293b;
+        border-radius: 8px;
+        border: 1px solid #334155;
+        font-size: 0.9rem;
+        color: #94a3b8;
+      }
+      .modal .mind-exercise {
+        margin-bottom: 16px;
+        padding: 16px;
+        background: #0f172a;
+        border-radius: 8px;
+        border: 1px solid #334155;
+      }
+      .modal .mind-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .modal .mind-category {
+        font-size: 0.9rem;
+        color: #10b981;
+        font-weight: 600;
+      }
+      .modal .mind-difficulty {
+        font-size: 0.8rem;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-weight: 600;
+      }
+      .modal .mind-difficulty.easy {
+        background: #065f46;
+        color: #10b981;
+      }
+      .modal .mind-difficulty.medium {
+        background: #92400e;
+        color: #f59e0b;
+      }
+      .modal .mind-difficulty.hard {
+        background: #7f1d1d;
+        color: #ef4444;
+      }
+      .modal .mind-question {
+        font-size: 1.1rem;
+        color: #e2e8f0;
+        margin-bottom: 16px;
+        line-height: 1.5;
+      }
+      .modal .mind-answer-section {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .modal .mind-answer-section input {
+        flex: 1;
+        padding: 8px 12px;
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 6px;
+        color: #e2e8f0;
+        font-size: 1rem;
+      }
+      .modal .mind-answer-section input:focus {
+        outline: none;
+        border-color: #10b981;
+      }
+      .modal .mind-feedback {
+        padding: 8px 12px;
+        border-radius: 6px;
+        margin-bottom: 8px;
+        font-weight: 600;
+      }
+      .modal .mind-feedback.correct {
+        background: #065f46;
+        color: #10b981;
+      }
+      .modal .mind-feedback.incorrect {
+        background: #7f1d1d;
+        color: #ef4444;
+      }
+      .modal .mind-feedback.partial {
+        background: #92400e;
+        color: #f59e0b;
+      }
+      .modal .mind-explanation {
+        padding: 8px 12px;
+        background: #1e293b;
+        border-radius: 6px;
+        color: #cbd5e1;
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+      }
+      .modal .mind-hint-display {
+        padding: 8px 12px;
+        background: #92400e;
+        border-radius: 6px;
+        color: #f59e0b;
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+      }
+      .modal .mind-progress {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px;
+        background: #1e293b;
+        border-radius: 8px;
+        border: 1px solid #334155;
+        margin-bottom: 16px;
+      }
+      .modal .mind-time {
+        color: #10b981;
+        font-weight: 600;
+      }
+      .modal .mind-score {
+        color: #f59e0b;
+        font-weight: 600;
+      }
+      .modal .mind-progress-text {
+        color: #94a3b8;
+        font-size: 0.9rem;
+      }
+      .modal .mind-controls {
+        border-top: 1px solid #334155;
+        padding-top: 16px;
+      }
+      .modal .mind-results {
+        margin-top: 16px;
+        padding: 16px;
+        background: #065f46;
+        border-radius: 8px;
+        border: 1px solid #10b981;
+      }
+      .modal .session-results h4 {
+        margin: 0 0 12px 0;
+        color: #10b981;
+      }
+      .modal .session-results p {
+        margin: 4px 0;
+        color: #cbd5e1;
+      }
+      .modal .memory-matrix {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
+        margin: 16px 0;
+        max-width: 150px;
+      }
+      .modal .matrix-row {
+        display: contents;
+      }
+      .modal .matrix-cell {
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 4px;
+        padding: 8px;
+        text-align: center;
+        font-weight: 600;
+        color: #e2e8f0;
+      }
+      /* Mirror modal */
+      .modal .mirror-content {
+        padding-top: 16px;
+        text-align: center;
+      }
+      .modal .mirror-container {
+        width: 100%;
+        max-width: 500px;
+        aspect-ratio: 4/3;
+        border: 1px solid #334155;
+        border-radius: 12px;
+        background: #0f172a;
+        margin: 0 auto 0 auto;
+        overflow: hidden;
+        position: relative;
+      }
+      .modal .mirror-container video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .modal .mirror-timer {
+        position: absolute;
+        bottom: 12px;
+        right: 12px;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #10b981;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 8px 12px;
+        border-radius: 6px;
+        backdrop-filter: blur(4px);
+        z-index: 10;
+      }
+      .modal .mirror-instruction {
+        position: absolute;
+        bottom: 12px;
+        left: 12px;
+        color: #94a3b8;
+        font-size: 0.9rem;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 6px 10px;
+        border-radius: 4px;
+        backdrop-filter: blur(4px);
+        z-index: 10;
+      }
+      .modal .mirror-canvas {
+        display: none;
+      }
+      .modal .mirror-feedback {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #065f46;
+        color: #ffffff;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        z-index: 10001;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+      .modal .mirror-feedback.show {
+        opacity: 1;
+      }
+      /* Chinese Language Learning Modal Styles */
+      .modal .chinese-content {
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      .modal .chinese-stats {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px;
+        background: #1e293b;
+        border-radius: 8px;
+        border: 1px solid #334155;
+        margin-bottom: 16px;
+      }
+      .modal .chinese-progress {
+        color: #10b981;
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+      .modal .chinese-timer {
+        color: #f59e0b;
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+      .modal .chinese-timer.warning {
+        color: #ef4444;
+        animation: pulse 1s infinite;
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+      .modal .chinese-vocabulary {
+        margin-bottom: 20px;
+      }
+      .modal .chinese-word-section {
+        text-align: center;
+        margin-bottom: 20px;
+        padding: 20px;
+        background: #0b1220;
+        border-radius: 12px;
+        border: 1px solid #243242;
+      }
+      .modal .chinese-word {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #e2e8f0;
+        margin-bottom: 8px;
+        font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      }
+      .modal .chinese-pinyin {
+        font-size: 1.2rem;
+        color: #f59e0b;
+        margin-bottom: 8px;
+        font-style: italic;
+      }
+      .modal .chinese-meaning {
+        font-size: 1.1rem;
+        color: #94a3b8;
+        font-weight: 500;
+      }
+      .modal .chinese-example-section {
+        padding: 16px;
+        background: #1e293b;
+        border-radius: 8px;
+        border: 1px solid #334155;
+      }
+      .modal .chinese-example {
+        font-size: 1.1rem;
+        color: #e2e8f0;
+        margin-bottom: 8px;
+        font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      }
+      .modal .chinese-example-pinyin {
+        font-size: 1rem;
+        color: #f59e0b;
+        margin-bottom: 8px;
+        font-style: italic;
+      }
+      .modal .chinese-example-translation {
+        font-size: 1rem;
+        color: #94a3b8;
+        font-style: italic;
+      }
+      .modal .chinese-audio-section {
+        margin-bottom: 20px;
+      }
+      .modal .chinese-audio-controls {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .modal .chinese-audio-status {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .modal .chinese-microphone-status,
+      .modal .chinese-tts-status,
+      .modal .chinese-recording-status {
+        font-size: 0.9rem;
+        padding: 4px 8px;
+        border-radius: 4px;
+      }
+      .modal .chinese-microphone-status.success,
+      .modal .chinese-tts-status.success {
+        background: #065f46;
+        color: #10b981;
+      }
+      .modal .chinese-microphone-status.error,
+      .modal .chinese-tts-status.error {
+        background: #7f1d1d;
+        color: #ef4444;
+      }
+      .modal .chinese-recording-status {
+        background: #1e293b;
+        color: #94a3b8;
+      }
+      .modal .chinese-recording-status.recording {
+        background: #7f1d1d;
+        color: #ef4444;
+        animation: pulse 1s infinite;
+      }
+      .modal .chinese-controls {
+        border-top: 1px solid #334155;
+        padding-top: 16px;
+      }
+      .modal .chinese-feedback {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #065f46;
+        color: #ffffff;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        z-index: 10001;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+      .modal .chinese-feedback.show {
+        opacity: 1;
+      }
+      /* Visual feedback for recording and playback */
+      .modal .chinese-word.recording-highlight,
+      .modal .chinese-pinyin.recording-highlight {
+        background: #7f1d1d;
+        color: #fecaca;
+        border: 2px solid #ef4444;
+        animation: recording-pulse 1s infinite;
+      }
+      .modal .chinese-word.speaking-highlight,
+      .modal .chinese-pinyin.speaking-highlight {
+        background: #065f46;
+        color: #a7f3d0;
+        border: 2px solid #10b981;
+        animation: speaking-pulse 0.8s infinite;
+      }
+      .modal .chinese-word.playback-highlight,
+      .modal .chinese-pinyin.playback-highlight {
+        background: #1e40af;
+        color: #dbeafe;
+        border: 2px solid #3b82f6;
+        animation: playback-pulse 0.6s infinite;
+      }
+      @keyframes recording-pulse {
+        0%, 100% { 
+          box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+          transform: scale(1);
+        }
+        50% { 
+          box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+          transform: scale(1.02);
+        }
+      }
+      @keyframes speaking-pulse {
+        0%, 100% { 
+          box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+          transform: scale(1);
+        }
+        50% { 
+          box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+          transform: scale(1.01);
+        }
+      }
+      @keyframes playback-pulse {
+        0%, 100% { 
+          box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+          transform: scale(1);
+        }
+        50% { 
+          box-shadow: 0 0 0 6px rgba(59, 130, 246, 0);
+          transform: scale(1.01);
+        }
+      }
+      /* Enhanced recording button styles */
+      .modal .chinese-record.recording {
+        background: #dc2626;
+        color: #ffffff;
+        animation: recording-button-pulse 1s infinite;
+      }
+      .modal .chinese-play.playing {
+        background: #1e40af;
+        color: #ffffff;
+        animation: playing-button-pulse 0.8s infinite;
+      }
+      @keyframes recording-button-pulse {
+        0%, 100% { 
+          box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7);
+        }
+        50% { 
+          box-shadow: 0 0 0 8px rgba(220, 38, 38, 0);
+        }
+      }
+      @keyframes playing-button-pulse {
+        0%, 100% { 
+          box-shadow: 0 0 0 0 rgba(30, 64, 175, 0.7);
+        }
+        50% { 
+          box-shadow: 0 0 0 6px rgba(30, 64, 175, 0);
+        }
+      }
+      
+      /* Activities Grid */
+      .activities-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+      }
+      
+      .activities-grid .btn {
+        width: 100%;
+        padding: 12px 16px;
+        font-size: 14px;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      
+      @media (max-width: 768px) {
+        .activities-grid {
+          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          gap: 8px;
+        }
+        
+        .activities-grid .btn {
+          padding: 10px 12px;
+          font-size: 13px;
+        }
+      }
     </style>
   </head>
   <body>
     <div class="wrap">
       <div class="card">
-        <h1>Blocked</h1>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h1>Blocked</h1>
+          <button class="btn ghost" id="globalShortcutsBtn" style="padding: 4px 8px; font-size: 0.8rem;">?</button>
+        </div>
         <div class="sub">This site is blocked by Simple Site Blocker.</div>
 
         <div style="display: grid; gap: 12px;">
@@ -312,12 +853,16 @@
               </div>
             </div>
             <div>
-              <h3>Prayer</h3>
-              <button class="btn secondary" id="prayBtn">1‑min prayer</button>
-              <h3 style="margin-top: 18px;">Reading</h3>
-              <button class="btn secondary" id="readBtn">1‑min reading</button>
-              <h3 style="margin-top: 18px;">Doodle</h3>
-              <button class="btn secondary" id="doodleBtn">Draw your mood</button>
+              <h3>1m Activities</h3>
+              <div class="activities-grid">
+                <button class="btn secondary" id="prayBtn">Prayer</button>
+                <button class="btn secondary" id="readBtn">Reading</button>
+                <button class="btn secondary" id="doodleBtn">Draw your mood</button>
+                <button class="btn secondary" id="eyeHealthBtn">Eye exercises</button>
+                <button class="btn secondary" id="mindBtn">Brain training</button>
+                <button class="btn secondary" id="chineseBtn">Chinese learning</button>
+                <button class="btn secondary" id="mirrorBtn">5s mirror</button>
+              </div>
             </div>
           </div>
         </div>
@@ -330,7 +875,10 @@
     <div id="readModal" class="modal" aria-hidden="true">
       <div class="panel">
         <div style="display:flex; justify-content: space-between; align-items: center;">
-          <h3>1‑minute reading</h3>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <h3>1‑minute reading</h3>
+            <button class="btn ghost" id="readShortcutsBtn" style="padding: 4px 8px; font-size: 0.8rem;">?</button>
+          </div>
           <button class="btn ghost" id="readClose">Close</button>
         </div>
         <div class="reader"><div class="word" id="readWord">—</div></div>
@@ -349,7 +897,10 @@
     <div id="doodleModal" class="modal" aria-hidden="true">
       <div class="panel">
         <div style="display:flex; justify-content: space-between; align-items: center;">
-          <h3>Draw your mood</h3>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <h3>Draw your mood</h3>
+            <button class="btn ghost" id="doodleShortcutsBtn" style="padding: 4px 8px; font-size: 0.8rem;">?</button>
+          </div>
           <button class="btn ghost" id="doodleClose">Close</button>
         </div>
         <div class="doodle-prompt">Hold spacebar and move your mouse to draw</div>
@@ -365,6 +916,166 @@
         </div>
       </div>
     </div>
+    <!-- Eye Health modal -->
+    <div id="eyeHealthModal" class="modal" aria-hidden="true">
+      <div class="panel">
+        <div style="display:flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <h3>Eye Health Routine</h3>
+            <button class="btn ghost" id="eyeShortcutsBtn" style="padding: 4px 8px; font-size: 0.8rem;">?</button>
+          </div>
+          <button class="btn ghost" id="eyeClose">Close</button>
+        </div>
+        <div class="eye-health-content">
+          <div class="eye-phase">
+            <h4 id="eyeTitle">Distance Focus</h4>
+            <div class="eye-subtitle" id="eyeSubtitle">15 seconds</div>
+            <div class="eye-instruction" id="eyeInstruction">Look at something 20+ feet away and focus</div>
+            <div class="eye-progress" id="eyeProgress">Phase 1 of 4</div>
+          </div>
+          <div class="eye-breathing" id="eyeBreathing" style="display: none;">
+            <div class="breathing-indicator">Breathe In (4s)</div>
+          </div>
+          <div class="eye-controls" style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <button class="btn" id="eyeStart">Cancel routine</button>
+              <button class="btn ghost" id="eyeSkip">Skip phase</button>
+              <button class="btn ghost" id="eyeReset">Reset</button>
+            </div>
+            <div class="muted">Press 'e' to open | 'q' to close | 'n' to skip | 't' to reset</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Mind Exercise modal -->
+    <div id="mindModal" class="modal" aria-hidden="true">
+      <div class="panel">
+        <div style="display:flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <h3>Mind Exercises</h3>
+            <button class="btn ghost" id="mindShortcutsBtn" style="padding: 4px 8px; font-size: 0.8rem;">?</button>
+          </div>
+          <button class="btn ghost" id="mindClose">Close</button>
+        </div>
+        <div class="mind-content">
+          <div class="mind-stats" id="mindStats"></div>
+          <div class="mind-exercise">
+            <div class="mind-header">
+              <div class="mind-category" id="mindCategory">Category</div>
+              <div class="mind-difficulty" id="mindDifficulty">Difficulty</div>
+            </div>
+            <div class="mind-question" id="mindQuestion">Press Start to begin</div>
+            <div class="mind-matrix" id="mindMatrix" style="display: none;"></div>
+            <div class="mind-answer-section">
+              <input type="text" id="mindAnswer" placeholder="Your answer..." />
+              <button class="btn" id="mindSubmit">Submit</button>
+            </div>
+            <div class="mind-feedback" id="mindFeedback" style="display: none;"></div>
+            <div class="mind-explanation" id="mindExplanation" style="display: none;"></div>
+            <div class="mind-hint-display" id="mindHintDisplay" style="display: none;"></div>
+          </div>
+          <div class="mind-progress">
+            <div class="mind-time" id="mindTime">60s remaining</div>
+            <div class="mind-score" id="mindScore">Score: 0</div>
+            <div class="mind-progress-text" id="mindProgress">0 exercises completed</div>
+          </div>
+          <div class="mind-controls" style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <button class="btn" id="mindStart">Stop Session</button>
+              <button class="btn ghost" id="mindHint">Hint (H)</button>
+              <button class="btn ghost" id="mindSkip">Skip (N)</button>
+              <button class="btn ghost" id="mindReset">Reset (R)</button>
+            </div>
+            <div class="muted">Press 'm' to open | 'q' to close | 's' to stop | 'enter' to submit</div>
+          </div>
+          <div class="mind-results" id="mindResults" style="display: none;"></div>
+        </div>
+      </div>
+    </div>
+    <!-- Chinese Language Learning modal -->
+    <div id="chineseModal" class="modal" aria-hidden="true">
+      <div class="panel">
+        <div style="display:flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <h3>Chinese Language Learning</h3>
+            <button class="btn ghost" id="chineseShortcutsBtn" style="padding: 4px 8px; font-size: 0.8rem;">?</button>
+          </div>
+          <button class="btn ghost" id="chineseClose">Close</button>
+        </div>
+        <div class="chinese-content">
+          <div class="chinese-stats">
+            <div class="chinese-progress" id="chineseProgress">Words learned: 0 | Accuracy: 0%</div>
+            <div class="chinese-timer" id="chineseTimer">60s remaining</div>
+          </div>
+          <div class="chinese-vocabulary">
+            <div class="chinese-word-section">
+              <div class="chinese-word" id="chineseWord">你好</div>
+              <div class="chinese-pinyin" id="chinesePinyin">nǐ hǎo</div>
+              <div class="chinese-meaning" id="chineseMeaning">Hello</div>
+            </div>
+            <div class="chinese-example-section">
+              <div class="chinese-example" id="chineseExample">你好，很高兴认识你。</div>
+              <div class="chinese-example-pinyin" id="chineseExamplePinyin">nǐ hǎo, hěn gāo xìng rèn shi nǐ.</div>
+              <div class="chinese-example-translation" id="chineseExampleTranslation">Hello, nice to meet you.</div>
+            </div>
+          </div>
+          <div class="chinese-audio-section">
+            <div class="chinese-audio-controls">
+              <button class="btn" id="chineseRecord">🎤 Start Recording</button>
+              <button class="btn ghost" id="chinesePlay">🔊 Play Recording</button>
+            </div>
+            <div class="chinese-audio-status">
+              <div class="chinese-microphone-status" id="chineseMicrophoneStatus">Checking microphone...</div>
+              <div class="chinese-tts-status" id="chineseTTSStatus">Checking TTS...</div>
+              <div class="chinese-recording-status" id="chineseRecordingStatus">Ready to record</div>
+            </div>
+          </div>
+          <div class="chinese-controls" style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <button class="btn" id="chineseStart">New Word</button>
+              <button class="btn ghost" id="chineseNext">Next (N)</button>
+              <button class="btn ghost" id="chinesePrev">Previous (P)</button>
+            </div>
+            <div class="muted">Press 'c' to open | 'q' to close | 's' to record | 'r' to play | 'space' to speak word | 'enter' to speak sentence</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Mirror modal -->
+    <div id="mirrorModal" class="modal" aria-hidden="true">
+      <div class="panel mirror-panel">
+        <div style="display:flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <h3>Mirror</h3>
+            <button class="btn ghost" id="mirrorShortcutsBtn" style="padding: 4px 8px; font-size: 0.8rem;">?</button>
+          </div>
+          <button class="btn ghost" id="mirrorClose">Close</button>
+        </div>
+        <div class="mirror-content">
+          <div class="mirror-container">
+            <video id="mirrorVideo" autoplay muted playsinline></video>
+            <canvas id="mirrorCanvas" class="mirror-canvas"></canvas>
+            <div class="mirror-timer" id="mirrorTimer">5</div>
+            <div class="mirror-instruction">Press 'q' to close, 'space' to copy photo</div>
+          </div>
+          <div class="mirror-feedback" id="mirrorFeedback">Photo copied!</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Keyboard Shortcuts Modal -->
+    <div id="shortcutsModal" class="modal" aria-hidden="true">
+      <div class="panel">
+        <div style="display:flex; justify-content: space-between; align-items: center;">
+          <h3 id="shortcutsTitle">Keyboard Shortcuts</h3>
+          <button class="btn ghost" id="shortcutsClose">Close</button>
+        </div>
+        <div id="shortcutsContent" style="padding: 16px 0;">
+          <!-- Content will be populated dynamically -->
+        </div>
+      </div>
+    </div>
+    
     <script type="module" src="blocked.js"></script>
   </body>
 </html>

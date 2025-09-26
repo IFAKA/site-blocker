@@ -12,7 +12,8 @@ export const STORAGE_KEYS = {
   ROUTINE_INDEX: 'site-blocker:routine:index',
   BOOK_META: 'site-blocker:reader:book:len',
   READER_POINTER: 'site-blocker:reader:pointer',
-  READER_WPM: 'site-blocker:reader:wpm'
+  READER_WPM: 'site-blocker:reader:wpm',
+  CHINESE_PROGRESS: 'site-blocker:chinese:progress'
 };
 
 /**
@@ -40,9 +41,13 @@ export const KEYBOARD_SHORTCUTS = {
   READING: 'r',
   EXERCISE: 's',
   JOURNAL: 'j',
+  INTENT: 'i',
   LIST_MODE: 'l',
   DOODLE: 'd',
   EYE_HEALTH: 'e',
+  MIND: 'm',
+  CHINESE: 'c',
+  MIRROR: 'v',
   
   // Intent shortcuts
   SAVE_INTENT: 'enter',
@@ -93,7 +98,13 @@ export const KEYBOARD_SHORTCUTS = {
   NEXT_SENTENCE: 's',
   PREV_SENTENCE: 'a',
   COPY_SELECTION: 'c',
-  TO_JOURNAL: 'j'
+  TO_JOURNAL: 'j',
+  
+  // Chinese learning shortcuts
+  CHINESE_RECORD: 's',
+  CHINESE_PLAY: 'r',
+  CHINESE_NEXT: 'n',
+  CHINESE_PREV: 'p'
 };
 
 /**

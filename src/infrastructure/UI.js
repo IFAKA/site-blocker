@@ -90,13 +90,19 @@ export function addClass(element, className) {
 /**
  * Remove CSS class from element
  * @param {HTMLElement} element - Element to modify
- * @param {string} className - Class name to remove
+ * @param {string} className - Class name(s) to remove (space-separated for multiple)
  * @returns {boolean} Success status
  */
 export function removeClass(element, className) {
   if (!element || !className) return false;
   try {
-    element.classList.remove(className);
+    // Handle multiple class names separated by spaces
+    const classNames = className.trim().split(/\s+/);
+    classNames.forEach(cls => {
+      if (cls) {
+        element.classList.remove(cls);
+      }
+    });
     return true;
   } catch (error) {
     console.warn('Failed to remove class:', error);

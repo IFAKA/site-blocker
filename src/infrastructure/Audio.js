@@ -180,3 +180,151 @@ export function playEyeHealthComplete() {
 export function playBreathingCue() {
   return playBeep(220, 100);
 }
+
+/**
+ * Play mind exercise start sound
+ * @returns {Promise<boolean>} Success status
+ */
+export function playMindExerciseStart() {
+  return playBeep(660, 200);
+}
+
+/**
+ * Play mind exercise correct answer sound
+ * @returns {Promise<boolean>} Success status
+ */
+export function playMindCorrectAnswer() {
+  return playBeep(880, 150).then(() => {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        playBeep(1100, 150).then(resolve);
+      }, 100);
+    });
+  });
+}
+
+/**
+ * Play mind exercise wrong answer sound
+ * @returns {Promise<boolean>} Success status
+ */
+export function playMindWrongAnswer() {
+  return playBeep(440, 200);
+}
+
+/**
+ * Play mind exercise hint sound
+ * @returns {Promise<boolean>} Success status
+ */
+export function playMindHint() {
+  return playBeep(550, 100);
+}
+
+/**
+ * Play mind exercise timer warning sound
+ * @returns {Promise<boolean>} Success status
+ */
+export function playMindTimerWarning() {
+  return playBeep(330, 300);
+}
+
+/**
+ * Play mind exercise completion sound
+ * @returns {Promise<boolean>} Success status
+ */
+export function playMindComplete() {
+  return playBeep(880, 200).then(() => {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        playBeep(1100, 200).then(() => {
+          return new Promise(resolve2 => {
+            setTimeout(() => {
+              playBeep(1320, 300).then(resolve2);
+            }, 150);
+          });
+        });
+      }, 200);
+    });
+  });
+}
+
+/**
+ * Play Chinese learning start sound
+ * @returns {Promise<boolean>} Success status
+ */
+export function playChineseLearningStart() {
+  return playBeep(660, 200);
+}
+
+/**
+ * Play Chinese recording start sound
+ * @returns {Promise<boolean>} Success status
+ */
+export function playChineseRecordingStart() {
+  return playBeep(880, 150);
+}
+
+/**
+ * Play Chinese recording stop sound
+ * @returns {Promise<boolean>} Success status
+ */
+export function playChineseRecordingStop() {
+  return playBeep(440, 150);
+}
+
+/**
+ * Play Chinese playback sound
+ * @returns {Promise<boolean>} Success status
+ */
+export function playChinesePlayback() {
+  return playBeep(550, 100);
+}
+
+/**
+ * Play Chinese session complete sound
+ * @returns {Promise<boolean>} Success status
+ */
+export function playChineseSessionComplete() {
+  return playBeep(880, 200).then(() => {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        playBeep(1100, 200).then(() => {
+          return new Promise(resolve2 => {
+            setTimeout(() => {
+              playBeep(1320, 300).then(resolve2);
+            }, 150);
+          });
+        });
+      }, 200);
+    });
+  });
+}
+
+/**
+ * Play Chinese pronunciation sound
+ * @returns {Promise<boolean>} Success status
+ */
+export function playChinesePronunciation() {
+  return playBeep(660, 100);
+}
+
+/**
+ * Play Chinese feedback sound (correct)
+ * @returns {Promise<boolean>} Success status
+ */
+export function playChineseCorrect() {
+  return playBeep(880, 150).then(() => {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        playBeep(1100, 150).then(resolve);
+      }, 100);
+    });
+  });
+}
+
+/**
+ * Play Chinese feedback sound (incorrect)
+ * @returns {Promise<boolean>} Success status
+ */
+export function playChineseIncorrect() {
+  return playBeep(440, 200);
+}
