@@ -1898,6 +1898,7 @@ textarea:focus::before {
 
 /* Gallery cursor */
 .gallery-cursor {
+  opacity: 0.8;
   border: 2px solid var(--accent-success) !important;
   transition: none !important;
 }
